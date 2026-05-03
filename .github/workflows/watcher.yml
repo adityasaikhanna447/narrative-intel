@@ -1,0 +1,24 @@
+name: NarrativeIntel — News Watcher
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping Watcher
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST \
+            -H "x-watcher-token: ${{ secrets.WATCHER_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.VERCEL_WATCHER_URL }}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          echo "Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          if [ "$HTTP_CODE" != "200" ]; then exit 1; fi
