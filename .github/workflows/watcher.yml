@@ -15,7 +15,8 @@ jobs:
           RESPONSE=$(curl -s -w "\n%{http_code}" \
             -X GET \
             -H "x-watcher-token: ${{ secrets.WATCHER_TOKEN }}" \
-            "${{ secrets.VERCEL_WATCHER_URL }}")
+            -H "Content-Type: application/json" \
+            "https://narrative-intel-ten.vercel.app/api/watcher")
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | head -n-1)
           echo "Status: $HTTP_CODE"
