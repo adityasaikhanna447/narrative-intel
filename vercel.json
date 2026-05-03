@@ -4,5 +4,12 @@
     "api/watcher.js": {
       "maxDuration": 60
     }
-  }
+  },
+  "routes": [
+    {
+      "src": "/api/watcher",
+      "methods": ["GET", "POST"],
+      "dest": "/api/watcher.js"
+    }
+  ]
 }
