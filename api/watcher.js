@@ -34,6 +34,11 @@ const MID  = /india|modi|court|election|economy|gdp|rupee|china|brics|un |parlia
 let _seenThisRun = new Set();
 
 module.exports = async function handler(req, res) {
+  // ── Method check ──────────────────────────────────────
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   // ── Auth check — only GitHub Actions can call this ──
   const token = req.headers['x-watcher-token'];
   if (token !== process.env.WATCHER_TOKEN) {
