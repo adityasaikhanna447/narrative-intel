@@ -7,16 +7,148 @@
 const SEEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 const WATCH_TOPICS = [
-  { name: 'India Breaking', q: 'India breaking news urgent', threshold: 72 },
-  { name: 'India-Pakistan', q: 'India Pakistan military tension', threshold: 65 },
-  { name: 'India-China',    q: 'India China LAC border',        threshold: 65 },
-  { name: 'Supreme Court',  q: 'Supreme Court India verdict',   threshold: 68 },
-  { name: 'Indian Politics',q: 'Modi BJP Congress India politics', threshold: 70 },
-  { name: 'Geopolitics',   q: 'BRICS UN India foreign policy', threshold: 68 },
+
+  // ── BREAKING ──────────────────────────────────────
+  { name: 'India Breaking',
+    q: 'India breaking news urgent latest',
+    threshold: 65 },
+
+  // ── BJP & RULING COALITION ─────────────────────────
+  { name: 'BJP',
+    q: 'BJP Bharatiya Janata Party Modi Amit Shah news',
+    threshold: 40 },
+
+  { name: 'BJP Leaders',
+    q: 'Yogi Adityanath Rajnath Singh Nirmala Sitharaman JP Nadda statement',
+    threshold: 40 },
+
+  { name: 'NDA Alliance',
+    q: 'NDA alliance JDU Nitish Kumar TDP Chandrababu coalition',
+    threshold: 45 },
+
+  // ── OPPOSITION ─────────────────────────────────────
+  { name: 'Congress',
+    q: 'Congress INC Rahul Gandhi Sonia Gandhi Kharge India politics',
+    threshold: 40 },
+
+  { name: 'AAP',
+    q: 'Aam Aadmi Party AAP Arvind Kejriwal Atishi Delhi Punjab',
+    threshold: 40 },
+
+  { name: 'TMC',
+    q: 'Trinamool Congress TMC Mamata Banerjee Bengal politics',
+    threshold: 40 },
+
+  { name: 'SP RJD',
+    q: 'Samajwadi Party Akhilesh Yadav RJD Tejashwi Yadav Bihar UP politics',
+    threshold: 40 },
+
+  { name: 'Regional Parties',
+    q: 'DMK Stalin AIADMK Shiv Sena NCP Uddhav Sharad Pawar TRS BRS',
+    threshold: 42 },
+
+  { name: 'INDIA Alliance',
+    q: 'INDIA bloc opposition alliance seat sharing meeting',
+    threshold: 45 },
+
+  // ── ELECTIONS ──────────────────────────────────────
+  { name: 'Election Commission',
+    q: 'Election Commission India ECI announcement schedule MCC',
+    threshold: 40 },
+
+  { name: 'Election Dates',
+    q: 'election date announced schedule voting phase India',
+    threshold: 38 },
+
+  { name: 'Exit Polls',
+    q: 'exit poll survey India election prediction result',
+    threshold: 35 },
+
+  { name: 'Election Results',
+    q: 'election result winner India counting votes declared',
+    threshold: 35 },
+
+  { name: 'By Elections',
+    q: 'bypoll by-election India seat vacancy result',
+    threshold: 40 },
+
+  { name: 'State Elections',
+    q: 'India state assembly election campaign rally vote',
+    threshold: 42 },
+
+  { name: 'MCC Violation',
+    q: 'Model Code of Conduct violation notice Election Commission politician',
+    threshold: 42 },
+
+  { name: 'Voter Issues',
+    q: 'voter list electoral roll EVM VVPAT India election',
+    threshold: 45 },
+
+  // ── POLITICAL EVENTS ───────────────────────────────
+  { name: 'Press Conference',
+    q: 'press conference India politician party briefing spokesperson',
+    threshold: 38 },
+
+  { name: 'Party Announcement',
+    q: 'party announcement India political manifesto promise scheme launch',
+    threshold: 40 },
+
+  { name: 'Controversial Statement',
+    q: 'controversial statement India politician remark row controversy',
+    threshold: 38 },
+
+  { name: 'Political Rally',
+    q: 'rally sabha India politician Modi Rahul campaign speech crowd',
+    threshold: 42 },
+
+  { name: 'Party Defection',
+    q: 'joins party quits defection India politician rebel MLA MP',
+    threshold: 40 },
+
+  { name: 'Alliance Shift',
+    q: 'alliance breaks joins coalition split India political party',
+    threshold: 42 },
+
+  // ── GOVERNMENT & POLICY ────────────────────────────
+  { name: 'Cabinet Decision',
+    q: 'Cabinet India decision ordinance bill approved scheme Modi',
+    threshold: 48 },
+
+  { name: 'Parliament',
+    q: 'Lok Sabha Rajya Sabha Parliament India session debate bill passed',
+    threshold: 48 },
+
+  { name: 'Opposition Protest',
+    q: 'opposition protest walkout adjournment India Parliament disruption',
+    threshold: 45 },
+
+  // ── LEGAL & ENFORCEMENT ────────────────────────────
+  { name: 'ED CBI Raids',
+    q: 'ED CBI raid arrest India politician corruption chargesheet',
+    threshold: 42 },
+
+  { name: 'Supreme Court Politics',
+    q: 'Supreme Court India politician party election case verdict',
+    threshold: 45 },
+
+  // ── GEOPOLITICS ────────────────────────────────────
+  { name: 'India Pakistan',
+    q: 'India Pakistan tension military border ceasefire',
+    threshold: 60 },
+
+  { name: 'India China',
+    q: 'India China LAC border Arunachal Doklam standoff',
+    threshold: 60 },
+
+  { name: 'India Foreign Policy',
+    q: 'India foreign policy MEA bilateral visit summit G20 BRICS',
+    threshold: 62 },
+
 ];
 
-const HIGH = /attack|war|strike|nuclear|crisis|emergency|verdict|resign|arrested|killed|bomb|terror|ceasefire|escalat|coup|airstrike|firing|clash|tension|dossier|explosion/i;
-const MID  = /india|modi|court|election|economy|gdp|rupee|china|brics|un |parliament|budget|reform|protest|bilateral|treaty|sanction/i;
+const HIGH = /attack|war|strike|nuclear|crisis|emergency|verdict|resign|arrested|killed|bomb|terror|ceasefire|escalat|coup|airstrike|explosion|result|winner|elected|majority|sweep|landslide/i;
+
+const MID = /india|modi|rahul|kejriwal|mamata|yogi|amit shah|election|vote|poll|exit poll|parliament|lok sabha|rajya sabha|cabinet|congress|bjp|aap|tmc|sp|rjd|ec|eci|mcc|rally|press conference|statement|controversial|defect|alliance|coalition|ed raid|cbi|chargesheet|ordinance|manifesto/i;
 
 let _seenThisRun = new Set();
 
