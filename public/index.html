@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NarrativeIntel v2 — Live Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07080b;--s1:#0d0f15;--s2:#131620;--s3:#1a1e2a;
+  --bd:#22273a;--bd2:#2e3448;
+  --tx:#dde1f0;--mu:#525b78;--mu2:#7280a0;
+  --red:#e8392a;--orange:#f06030;--gold:#f0a820;
+  --blue:#3b7ef6;--green:#20c060;--purple:#9050f0;
+  --red-g:rgba(232,57,42,.12);--blue-g:rgba(59,126,246,.1);
+  --gold-g:rgba(240,168,32,.1);--green-g:rgba(32,192,96,.1);--pur-g:rgba(144,80,240,.1);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{font-size:14px;}
+body{background:var(--bg);color:var(--tx);font-family:'Fraunces',Georgia,serif;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px;}
+
+/* TOPBAR */
+#topbar{flex-shrink:0;height:52px;background:rgba(7,8,11,.96);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);display:grid;grid-template-columns:190px 1fr auto;align-items:center;gap:14px;padding:0 18px;z-index:100;}
+.brand{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2.5px;display:flex;align-items:center;gap:7px;}
+.brand-dot{width:7px;height:7px;border-radius:50%;background:var(--red);animation:pdot 2s ease-in-out infinite;}
+@keyframes pdot{0%,100%{box-shadow:0 0 0 0 rgba(232,57,42,.6)}60%{box-shadow:0 0 0 5px rgba(232,57,42,0)}}
+.brand em{color:var(--red);font-style:normal;}
+.search-row{display:flex;gap:8px;align-items:center;}
+.sw{position:relative;flex:1;}
+#sI{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:5px;padding:8px 40px 8px 12px;color:var(--tx);font-family:'Fraunces',serif;font-size:13px;outline:none;transition:border-color .15s;}
+#sI:focus{border-color:var(--blue);}#sI::placeholder{color:var(--mu);font-style:italic;}
+.sgo{position:absolute;right:0;top:0;bottom:0;background:var(--blue);border:none;border-radius:0 5px 5px 0;padding:0 12px;color:#fff;cursor:pointer;font-size:15px;}
+.sgo:hover{background:#2a60d0;}
+.tbr{display:flex;align-items:center;gap:8px;}
+.cpill{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mu2);background:var(--s2);border:1px solid var(--bd);border-radius:20px;padding:3px 9px;}
+.cdot{width:5px;height:5px;border-radius:50%;background:var(--green);}
+.cdot.warn{background:var(--gold);}.cdot.low{background:var(--red);}
+.hbtn{background:none;border:1px solid var(--bd);border-radius:4px;padding:4px 9px;color:var(--mu2);cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:9px;transition:all .15s;}
+.hbtn:hover{border-color:var(--blue);color:var(--blue);}
+.sbadge{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);background:rgba(32,192,96,.08);border:1px solid rgba(32,192,96,.2);border-radius:20px;padding:3px 9px;}
+.sdot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 1.5s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* LAYOUT */
+#layout{flex:1;display:grid;grid-template-columns:330px 1fr;overflow:hidden;}
+
+/* FEED */
+#feedPanel{border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;}
+#feedTabs{display:flex;border-bottom:1px solid var(--bd);background:var(--s1);flex-shrink:0;}
+.ftab{flex:1;padding:9px 2px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mu);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .15s;}
+.ftab.on{color:var(--tx);border-bottom-color:var(--red);}.ftab:hover:not(.on){color:var(--mu2);}
+#feedScroll{flex:1;overflow-y:auto;}
+.fi{padding:12px 14px;border-bottom:1px solid var(--bd);cursor:pointer;transition:background .1s;position:relative;}
+.fi:hover{background:var(--s2);}.fi.sel{background:var(--s2);border-left:2px solid var(--red);}
+.fi-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;}
+.fi-src{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--blue);letter-spacing:1px;text-transform:uppercase;}
+.fi-time{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mu);}
+.fi-title{font-size:12.5px;line-height:1.4;font-weight:300;color:var(--tx);margin-bottom:5px;}
+.fi-desc{font-size:11px;color:var(--mu2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:5px;}
+.fi-bottom{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.fi-cat{font-family:'JetBrains Mono',monospace;font-size:8px;padding:2px 7px;border-radius:3px;background:var(--blue-g);color:var(--blue);border:1px solid rgba(59,126,246,.2);}
+.fi-score{font-family:'JetBrains Mono',monospace;font-size:8px;padding:2px 7px;border-radius:3px;border:1px solid;}
+.s-hi{background:var(--red-g);color:var(--red);border-color:rgba(232,57,42,.3);}
+.s-md{background:var(--gold-g);color:var(--gold);border-color:rgba(240,168,32,.3);}
+.s-lo{background:var(--s2);color:var(--mu);border-color:var(--bd);}
+.fi-live{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--green);}
+.fi-delay{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--mu);}
+.feed-msg{padding:32px 16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mu);line-height:2;}
+.skel{background:linear-gradient(90deg,var(--s2) 25%,var(--s3) 50%,var(--s2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:3px;margin-bottom:5px;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* HISTORY */
+#histPanel{flex-shrink:0;border-top:1px solid var(--bd);background:var(--s1);}
+.hist-hdr{display:flex;justify-content:space-between;align-items:center;padding:8px 13px;cursor:pointer;}
+.hist-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mu);letter-spacing:2px;text-transform:uppercase;}
+.hist-cnt{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--blue);}
+#histList{max-height:130px;overflow-y:auto;display:none;border-top:1px solid var(--bd);}
+.hi{padding:8px 13px;border-bottom:1px solid var(--bd);cursor:pointer;transition:background .1s;}
+.hi:hover{background:var(--s2);}
+.hi-title{font-size:11px;color:var(--mu2);line-height:1.3;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hi-time{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mu);}
+
+/* RIGHT */
+#rightPanel{display:flex;flex-direction:column;overflow:hidden;}
+#placeholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:36px;text-align:center;}
+.ph-icon{font-size:40px;opacity:.1;}
+.ph-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--mu);}
+.ph-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mu);line-height:2;}
+.ph-feats{text-align:left;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:13px 16px;max-width:360px;width:100%;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mu);line-height:2.2;}
+.ph-feats span{color:var(--green);}
+
+/* STORY HEADER */
+#storyHeader{flex-shrink:0;padding:16px 22px 13px;border-bottom:1px solid var(--bd);background:var(--s1);display:none;}
+.sh-cat{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;color:var(--red);text-transform:uppercase;margin-bottom:6px;}
+.sh-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;line-height:1.15;margin-bottom:7px;}
+.sh-meta{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.sh-mi{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mu2);}
+.sh-mi a{color:var(--blue);text-decoration:none;}
+.sh-live{font-family:'JetBrains Mono',monospace;font-size:8px;padding:2px 8px;border-radius:3px;background:var(--green-g);color:var(--green);border:1px solid rgba(32,192,96,.2);}
+.sh-delayed{font-family:'JetBrains Mono',monospace;font-size:8px;padding:2px 8px;border-radius:3px;background:var(--gold-g);color:var(--gold);border:1px solid rgba(240,168,32,.2);}
+
+/* ACTION BAR */
+#actionBar{flex-shrink:0;padding:9px 22px;border-bottom:1px solid var(--bd);display:none;gap:7px;align-items:center;flex-wrap:wrap;background:var(--s1);}
+.abtn{padding:6px 13px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;border:1px solid;transition:all .15s;}
+.a-red{background:var(--red);border-color:var(--red);color:#fff;}
+.a-red:hover{background:#c02820;}.a-red:disabled{background:var(--s3);border-color:var(--bd);color:var(--mu);cursor:not-allowed;}
+.a-out{background:transparent;border-color:var(--bd);color:var(--mu2);}
+.a-out:hover{border-color:var(--bd2);color:var(--tx);}
+#genStatus{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);margin-left:4px;}
+
+/* LOADING */
+#loadingState{flex:1;overflow-y:auto;display:none;padding:26px 22px;}
+.ls-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:2px;margin-bottom:12px;}
+.ls-bar{height:2px;background:var(--bd);border-radius:1px;margin-bottom:20px;overflow:hidden;}
+.ls-fill{height:100%;background:linear-gradient(90deg,var(--red),var(--orange));width:0%;transition:width .5s;border-radius:1px;}
+.ls-steps{display:flex;flex-direction:column;gap:10px;}
+.ls-step{display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mu);opacity:0;transform:translateY(4px);transition:all .3s;}
+.ls-step.vis{opacity:1;transform:none;color:var(--mu2);}.ls-step.active{color:var(--tx);}.ls-step.done{color:var(--green);}
+.spin{width:11px;height:11px;border:1.5px solid var(--bd2);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* RESEARCH AREA */
+#researchArea{flex:1;overflow-y:auto;display:none;}
+
+/* COPY BAR */
+#copyBar{flex-shrink:0;display:none;gap:7px;padding:9px 22px;border-top:1px solid var(--bd);background:var(--s1);}
+.cbtn{padding:7px 15px;border-radius:4px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.8px;text-transform:uppercase;border:1px solid;transition:all .15s;}
+.c-green{background:var(--green);border-color:var(--green);color:#fff;}.c-green:hover{background:#18a050;}
+.c-out{background:transparent;border-color:var(--bd);color:var(--mu2);}.c-out:hover{border-color:var(--bd2);color:var(--tx);}
+
+/* BRIEF */
+.brief-body{padding:0 22px 40px;}
+.b-sec{border-bottom:1px solid var(--bd);padding:17px 0;}
+.b-sec:last-child{border-bottom:none;}
+.b-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;}
+.b-tag{display:inline-flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:3px 9px;border-radius:3px;}
+.b-time{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mu);}
+.b-text{font-size:13px;line-height:1.85;color:#a8b4cc;}.b-text strong{color:var(--tx);}
+.hook-text{font-size:15px;font-style:italic;line-height:1.75;border-left:2px solid var(--red);padding-left:15px;color:var(--tx);}
+.pivot-box{background:linear-gradient(135deg,var(--pur-g),var(--blue-g));border:1px solid rgba(144,80,240,.2);border-radius:6px;padding:14px 17px;font-size:13px;line-height:1.8;color:#c0b0e8;font-style:italic;}
+.close-box{background:linear-gradient(135deg,var(--red-g),var(--blue-g));border:1px solid rgba(232,57,42,.2);border-radius:6px;padding:14px 17px;font-style:italic;font-size:15px;line-height:1.65;color:var(--tx);}
+.persp-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.persp-box{background:var(--s1);border:1px solid var(--bd);border-radius:5px;padding:11px;}
+.persp-label{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;}
+.p-g{color:var(--blue);}.p-c{color:var(--red);}.p-i{color:var(--green);}
+.persp-text{font-size:11px;color:var(--mu2);line-height:1.65;}
+.ref-list{display:flex;flex-direction:column;gap:5px;}
+.ref-item{font-family:'JetBrains Mono',monospace;font-size:10px;padding:7px 11px;background:var(--s1);border:1px solid var(--bd);border-radius:4px;display:flex;gap:8px;align-items:flex-start;}
+.ref-real{color:var(--blue);}.ref-ai{color:var(--gold);}
+.ref-pre{color:var(--mu);flex-shrink:0;}
+.prod-box{background:var(--s2);border:1px solid var(--bd);border-radius:5px;padding:13px 16px;font-size:12px;line-height:1.8;color:var(--mu2);font-style:italic;}
+.title-opts{display:flex;flex-direction:column;gap:7px;}
+.title-opt{background:var(--s1);border:1px solid var(--bd);border-radius:5px;padding:10px 13px;font-size:13px;color:var(--tx);line-height:1.4;cursor:pointer;transition:border-color .15s;}
+.title-opt:hover{border-color:var(--blue);}
+
+/* TAG COLOURS */
+.t-hook{background:var(--red-g);color:var(--red);border:1px solid rgba(232,57,42,.25);}
+.t-ctx{background:var(--blue-g);color:var(--blue);border:1px solid rgba(59,126,246,.22);}
+.t-hist{background:var(--gold-g);color:var(--gold);border:1px solid rgba(240,168,32,.22);}
+.t-data{background:var(--green-g);color:var(--green);border:1px solid rgba(32,192,96,.22);}
+.t-persp{background:var(--pur-g);color:var(--purple);border:1px solid rgba(144,80,240,.22);}
+.t-pivot{background:var(--pur-g);color:var(--purple);border:1px solid rgba(144,80,240,.22);}
+.t-next{background:rgba(240,96,48,.1);color:var(--orange);border:1px solid rgba(240,96,48,.22);}
+.t-close{background:var(--red-g);color:var(--red);border:1px solid rgba(232,57,42,.25);}
+.t-refs{background:var(--s2);color:var(--mu2);border:1px solid var(--bd);}
+.t-prod{background:var(--s2);color:var(--mu2);border:1px solid var(--bd);}
+.t-title{background:var(--gold-g);color:var(--gold);border:1px solid rgba(240,168,32,.22);}
+
+/* SCRIPT EDITOR */
+.script-builder{padding:14px 22px 80px;}
+.sc-info{padding:9px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:13px;display:flex;justify-content:space-between;align-items:center;}
+.toast-saved{color:var(--green);font-size:9px;opacity:0;transition:opacity .3s;}
+.toast-saved.show{opacity:1;}
+.ss{border:1px solid var(--bd);border-radius:5px;margin-bottom:9px;overflow:hidden;}
+.ss-hdr{display:flex;justify-content:space-between;align-items:center;padding:7px 11px;background:var(--s2);border-bottom:1px solid var(--bd);}
+.ss-lbl{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;}
+.ss-hint{font-family:'JetBrains Mono',monospace;font-size:7px;color:var(--mu);text-align:right;max-width:55%;}
+.ss-body{width:100%;background:var(--s1);border:none;padding:11px;color:var(--tx);font-family:'Fraunces',serif;font-size:13px;line-height:1.8;resize:vertical;min-height:68px;outline:none;}
+.ss-body:focus{background:var(--s2);}
+
+/* SETUP */
+#setup{position:fixed;inset:0;z-index:500;background:rgba(7,8,11,.98);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
+.setup-box{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:30px;max-width:530px;width:100%;}
+.setup-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;margin-bottom:4px;}
+.setup-sub{font-size:12px;color:var(--mu2);line-height:1.7;margin-bottom:22px;}
+.setup-sec{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:3px;color:var(--mu);text-transform:uppercase;border-bottom:1px solid var(--bd);padding-bottom:6px;margin-bottom:13px;margin-top:18px;}
+.sf{margin-bottom:13px;}
+.sf-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:1px;margin-bottom:5px;display:flex;justify-content:space-between;}
+.sf-lbl .g{color:var(--green);}.sf-lbl .o{color:var(--mu);}
+.si{width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:8px 11px;color:var(--tx);font-family:'JetBrains Mono',monospace;font-size:11px;outline:none;transition:border-color .15s;}
+.si:focus{border-color:var(--blue);}
+.si-hint{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mu);margin-top:4px;}
+.si-hint a{color:var(--blue);}
+.si-ta{resize:vertical;min-height:58px;font-family:'Fraunces',serif;font-size:12px;line-height:1.6;}
+.setup-go{width:100%;background:var(--red);border:none;border-radius:5px;padding:12px;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;cursor:pointer;transition:background .15s;margin-top:5px;}
+.setup-go:hover{background:#c02820;}
+select.si{appearance:none;}
+
+/* TOAST */
+#toast{position:fixed;bottom:18px;right:18px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:10px 15px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--tx);z-index:999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;max-width:280px;}
+#toast.show{opacity:1;transform:none;}
+
+/* ERROR BOXES */
+.err-box{padding:26px 22px;}
+.err-title{font-family:'JetBrains Mono',monospace;font-size:12px;margin-bottom:10px;}
+.err-body{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mu);line-height:2.2;}
+.err-body strong{color:var(--tx);}
+
+@media(max-width:840px){
+  #layout{grid-template-columns:1fr;grid-template-rows:48vh 1fr;}
+  #feedPanel{border-right:none;border-bottom:1px solid var(--bd);}
+  .persp-grid{grid-template-columns:1fr;}
+  #topbar{grid-template-columns:auto 1fr;}.tbr{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="setup-box">
+    <div class="setup-title">NARRATIVEINTEL <span style="color:var(--red)">v2</span></div>
+    <div class="setup-sub">Live news → deep AI research → editable video script. Keys stored in your browser only — sent directly to each API, never to us.</div>
+
+    <div class="setup-sec">Required</div>
+    <div class="sf">
+      <div class="sf-lbl">Gemini API Key <span class="g">FREE — no billing needed</span></div>
+      <input class="si" id="s_g" type="password" placeholder="AIza...">
+      <div class="si-hint">→ <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a></div>
+    </div>
+    <div class="sf">
+      <div class="sf-lbl">Gemini Model</div>
+      <select class="si" id="s_m">
+        <option value="gemini-2.5-flash-lite-preview-06-17">gemini-2.5-flash-lite — 1,000 req/day free ✓ Recommended</option>
+        <option value="gemini-2.5-flash-preview-05-20">gemini-2.5-flash — 250 req/day free</option>
+        <option value="gemini-1.5-flash">gemini-1.5-flash — 1,500 req/day (legacy fallback)</option>
+      </select>
+    </div>
+
+    <div class="setup-sec">Optional — Improves Research Quality</div>
+    <div class="sf">
+      <div class="sf-lbl">NewsData.io Key <span class="o">Optional · 200 credits/day free</span></div>
+      <input class="si" id="s_n" type="password" placeholder="pub_... (adds India-specific sources — note: free tier is 12h delayed)">
+      <div class="si-hint">→ <a href="https://newsdata.io/register" target="_blank">newsdata.io/register</a> — Primary source is Google News RSS (real-time, free, no key required)</div>
+    </div>
+    <div class="sf">
+      <div class="sf-lbl">Serper API Key <span class="o">Optional · 2,500 queries free</span></div>
+      <input class="si" id="s_s" type="password" placeholder="Adds live web search context to briefs">
+      <div class="si-hint">→ <a href="https://serper.dev/signup" target="_blank">serper.dev/signup</a> — no credit card · Note: may be CORS-blocked in browser; works best when deployed to Vercel</div>
+    </div>
+
+    <div class="setup-sec">Channel Context — Personalises Every Brief</div>
+    <div class="sf">
+      <div class="sf-lbl">Your Channel Profile <span class="o">Highly recommended</span></div>
+      <textarea class="si si-ta" id="s_ctx" placeholder="e.g. My YouTube channel covers Indian politics and geopolitics with a critical but neutral lens, in the style of Nitish Rajput. My audience is 18–35, educated, politically aware. I focus on stories that have a hidden angle mainstream media misses. Previous videos covered: electoral bonds, Manipur crisis, India-China LAC standoff."></textarea>
+    </div>
+
+    <button class="setup-go" onclick="saveSetup()">LAUNCH →</button>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="brand"><div class="brand-dot"></div>NARRATIVE<em>INTEL</em></div>
+  <div class="search-row">
+    <div class="sw">
+      <input id="sI" placeholder="Search: Pahalgam · BRICS · Electoral bonds · India-China LAC..." onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="sgo" onclick="doSearch()">⌕</button>
+    </div>
+  </div>
+  <div class="tbr">
+    <div class="sbadge"><div class="sdot"></div><span id="srcLbl">Google News RSS</span></div>
+    <div class="cpill"><div class="cdot" id="cDot"></div><span id="cLbl">—</span></div>
+    <button class="hbtn" onclick="loadFeed(true)">↻</button>
+    <button class="hbtn" onclick="showSetup()">⚙ Setup</button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div id="layout">
+
+  <!-- LEFT: FEED -->
+  <div id="feedPanel">
+    <div id="feedTabs">
+      <button class="ftab on" onclick="switchTab('india',this)">India</button>
+      <button class="ftab" onclick="switchTab('geo',this)">Geo</button>
+      <button class="ftab" onclick="switchTab('politics',this)">Politics</button>
+      <button class="ftab" onclick="switchTab('economy',this)">Economy</button>
+      <button class="ftab" onclick="switchTab('world',this)">World</button>
+    </div>
+    <div id="feedScroll"><div class="feed-msg">Initialising live feed…</div></div>
+    <div id="histPanel">
+      <div class="hist-hdr" onclick="toggleHist()">
+        <span class="hist-lbl">Brief History</span>
+        <span class="hist-cnt" id="histCnt">0 saved</span>
+      </div>
+      <div id="histList"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: RESEARCH -->
+  <div id="rightPanel">
+    <div id="placeholder">
+      <div class="ph-icon">🗞</div>
+      <div class="ph-title">SELECT A STORY</div>
+      <div class="ph-sub">Click any story in the live feed, or search any topic.<br>Then generate a full research brief instantly.</div>
+      <div class="ph-feats">
+        <span>✓</span> Real-time Google News RSS — no key, no delay<br>
+        <span>✓</span> AI video score on every story<br>
+        <span>✓</span> Gemini deep research + editable 8-block script<br>
+        <span>✓</span> Hook → Pivot → Closing Question structure<br>
+        <span>✓</span> 3 title options + production notes<br>
+        <span>✓</span> Auto-saves all briefs · Copy / Download .txt<br>
+        <span>✓</span> References clearly labelled: real vs AI-suggested
+      </div>
+    </div>
+
+    <div id="storyHeader"></div>
+
+    <div id="actionBar">
+      <button class="abtn a-red" id="genBtn" onclick="generateBrief()">⚡ Generate Research Brief</button>
+      <button class="abtn a-out" id="scriptBtn" onclick="switchView('script')" style="display:none;">✎ Edit Script</button>
+      <button class="abtn a-out" id="briefBtn" onclick="switchView('brief')" style="display:none;">◉ Brief</button>
+      <button class="abtn a-out" id="titleBtn" onclick="switchView('titles')" style="display:none;">🎯 Titles</button>
+      <span style="flex:1"></span>
+      <span id="genStatus"></span>
+    </div>
+
+    <div id="loadingState">
+      <div class="ls-lbl">Generating Research Brief…</div>
+      <div class="ls-bar"><div class="ls-fill" id="lsFill"></div></div>
+      <div class="ls-steps" id="lsSteps"></div>
+    </div>
+
+    <div id="researchArea"></div>
+
+    <div id="copyBar">
+      <button class="cbtn c-green" onclick="copyAll()">⎘ Copy Full Brief</button>
+      <button class="cbtn c-out" onclick="downloadTxt()">↓ Download .txt</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══ STATE ═══════════════════════════════════════════
+const K = {
+  get g(){ return ls('ni_g') }, get m(){ return ls('ni_m')||'gemini-2.5-flash-lite-preview-06-17' },
+  get n(){ return ls('ni_n') }, get s(){ return ls('ni_s') }, get ctx(){ return ls('ni_ctx')||'' }
+};
+let story=null, brief=null, view='brief', tab='india';
+let feedCache={}, history=JSON.parse(ls('ni_hist')||'[]');
+let creditsUsed=parseInt(ls('ni_cr_'+today())||'0');
+
+function ls(k){ return localStorage.getItem(k); }
+function lss(k,v){ localStorage.setItem(k,v); }
+function today(){ return new Date().toISOString().slice(0,10); }
+
+// ═══ RSS SOURCE (Real-time, Free, No Key) ════════════
+const RSS2J='https://api.rss2json.com/v1/api.json?rss_url=';
+const TAB_Q={
+  india:'India news Modi government',
+  geo:'India Pakistan China geopolitics military',
+  politics:'BJP Congress India elections opposition',
+  economy:'India economy RBI inflation GDP',
+  world:'BRICS United Nations diplomacy global'
+};
+
+async function fetchRSS(q){
+  const rss=`https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-IN&gl=IN&ceid=IN:en`;
+  const r=await fetch(RSS2J+encodeURIComponent(rss)+'&count=20');
+  const d=await r.json();
+  if(d.status!=='ok'||!d.items?.length) throw new Error('No RSS items');
+  return d.items.map(it=>({
+    title: it.title?.replace(/ - [^-]+$/,''),
+    description: it.description?.replace(/<[^>]*>/g,'').slice(0,200),
+    pubDate: it.pubDate, link: it.link,
+    source: it.author||srcFromTitle(it.title),
+    category: tab, _live:true
+  }));
+}
+
+async function fetchND(q){
+  if(!K.n) return [];
+  burnCredit();
+  const url=`https://newsdata.io/api/1/latest?apikey=${K.n}&q=${encodeURIComponent(q)}&country=in&language=en&size=10`;
+  const r=await fetch(url); const d=await r.json();
+  if(d.status!=='success') return [];
+  return (d.results||[]).map(a=>({
+    title:a.title, description:(a.description||'').slice(0,200),
+    pubDate:a.pubDate, link:a.link,
+    source:a.source_id||'NewsData', category:a.category?.[0]||tab,
+    _live:false, _nd:true  // 12h delayed on free tier — honest label
+  }));
+}
+
+function srcFromTitle(t=''){ const m=t.match(/ - ([^-]+)$/); return m?m[1].trim():'News'; }
+
+// ═══ FEED ════════════════════════════════════════════
+async function loadFeed(force=false){
+  const c=feedCache[tab];
+  if(!force&&c&&Date.now()-c.ts<5*60*1000){ renderFeed(c.items); return; }
+  renderSkels();
+  try{
+    let items=await fetchRSS(TAB_Q[tab]||TAB_Q.india);
+    try{ const nd=await fetchND(TAB_Q[tab]); items=[...items,...nd]; }catch(e){}
+    items=dedup(score(items));
+    feedCache[tab]={items,ts:Date.now()};
+    renderFeed(items);
+    const lbl=document.getElementById('srcLbl');
+    if(lbl) lbl.textContent='Google News RSS'+(K.n?' + NewsData':'');
+  }catch(e){
+    $('feedScroll').innerHTML=`<div class="feed-msg">Feed error: ${e.message}<br>Check connection or try refresh.</div>`;
+  }
+}
+
+function dedup(items){
+  const seen=new Set();
+  return items.filter(it=>{ const k=(it.title||'').toLowerCase().slice(0,48); if(seen.has(k))return false; seen.add(k);return true; });
+}
+
+const HIGH=/pakistan|attack|war|strike|nuclear|crisis|emergency|verdict|resign|killed|terror|ceasefire|escalat|coup/i;
+const MID=/india|modi|court|election|economy|gdp|rupee|china|brics|un|parliament|budget|reform|protest/i;
+function score(items){
+  return items.map(it=>{
+    const txt=(it.title||'')+(it.description||'');
+    let s=40;
+    if(HIGH.test(txt)) s+=48; else if(MID.test(txt)) s+=25;
+    if(it._live) s+=5;
+    const age=ageMin(it.pubDate);
+    if(age<120) s+=8; else if(age<360) s+=3;
+    it._score=Math.min(s,99); return it;
+  }).sort((a,b)=>b._score-a._score);
+}
+
+function ageMin(d){ if(!d) return 9999; return Math.floor((Date.now()-new Date(d).getTime())/60000); }
+
+function renderSkels(){
+  $('feedScroll').innerHTML=Array(7).fill(0).map(()=>`
+    <div style="padding:12px 14px;border-bottom:1px solid var(--bd);">
+      <div class="skel" style="height:8px;width:55%"></div>
+      <div class="skel" style="height:12px;width:92%;margin-top:6px"></div>
+      <div class="skel" style="height:12px;width:75%"></div>
+      <div class="skel" style="height:9px;width:38%;margin-top:5px"></div>
+    </div>`).join('');
+}
+
+function renderFeed(items){
+  window._fi=items;
+  if(!items.length){ $('feedScroll').innerHTML='<div class="feed-msg">No stories found.<br>Try a different tab or search.</div>'; return; }
+  $('feedScroll').innerHTML=items.map((it,i)=>{
+    const age=ageMin(it.pubDate);
+    const ts=age<60?`${age}m ago`:age<1440?`${Math.floor(age/60)}h ago`:`${Math.floor(age/1440)}d ago`;
+    const sc=it._score||50;
+    const sc_cls=sc>=80?'s-hi':sc>=60?'s-md':'s-lo';
+    const sc_lbl=sc>=80?`🔥 ${sc}`:sc>=60?`⚡ ${sc}`:`${sc}`;
+    return `<div class="fi" id="fi_${i}" onclick="selectStory(${i})">
+      <div class="fi-top"><span class="fi-src">${(it.source||'').toUpperCase().slice(0,22)}</span><span class="fi-time">${ts}</span></div>
+      <div class="fi-title">${it.title||''}</div>
+      ${it.description?`<div class="fi-desc">${it.description}</div>`:''}
+      <div class="fi-bottom">
+        <span class="fi-cat">${it.category||tab}</span>
+        <span class="fi-score ${sc_cls}">${sc_lbl}</span>
+        ${it._live?'<span class="fi-live">● LIVE</span>':''}
+        ${it._nd?'<span class="fi-delay">12h delay</span>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══ TABS + SEARCH ═══════════════════════════════════
+function switchTab(t,btn){
+  tab=t;
+  document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  loadFeed();
+}
+
+async function doSearch(){
+  const q=$('sI').value.trim(); if(!q) return;
+  document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('on'));
+  renderSkels();
+  try{
+    const rss=`https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-IN&gl=IN&ceid=IN:en`;
+    const r=await fetch(RSS2J+encodeURIComponent(rss)+'&count=20');
+    const d=await r.json();
+    let items=(d.items||[]).map(it=>({
+      title:it.title?.replace(/ - [^-]+$/,''),
+      description:it.description?.replace(/<[^>]*>/g,'').slice(0,200),
+      pubDate:it.pubDate, link:it.link,
+      source:it.author||srcFromTitle(it.title),
+      category:'search', _live:true
+    }));
+    if(K.n){
+      try{
+        burnCredit();
+        const url=`https://newsdata.io/api/1/latest?apikey=${K.n}&q=${encodeURIComponent(q)}&language=en&size=10`;
+        const r2=await fetch(url); const d2=await r2.json();
+        if(d2.results) items=[...items,...d2.results.map(a=>({
+          title:a.title,description:(a.description||'').slice(0,200),
+          pubDate:a.pubDate,link:a.link,source:a.source_id||'NewsData',
+          category:'search',_live:false,_nd:true
+        }))];
+      }catch(e){}
+    }
+    items=dedup(score(items));
+    window._fi=items; renderFeed(items);
+    toast(`${items.length} results for "${q}"`);
+  }catch(e){ $('feedScroll').innerHTML=`<div class="feed-msg">Search failed: ${e.message}</div>`; }
+}
+
+// ═══ SELECT STORY ════════════════════════════════════
+function selectStory(i){
+  document.querySelectorAll('.fi').forEach(el=>el.classList.remove('sel'));
+  const el=document.getElementById(`fi_${i}`); if(el) el.classList.add('sel');
+  story=window._fi?.[i]; if(!story) return;
+  brief=null; view='brief';
+  hide('placeholder'); show('storyHeader'); show('actionBar','flex');
+  hide('loadingState'); hide('researchArea'); hide('copyBar');
+  hEl('scriptBtn'); hEl('briefBtn'); hEl('titleBtn');
+
+  const age=ageMin(story.pubDate);
+  const ts=age<60?`${age} min ago`:age<1440?`${Math.floor(age/60)}h ago`:`${Math.floor(age/1440)}d ago`;
+  const pub=story.pubDate?new Date(story.pubDate).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'}):'Unknown';
+  const srcTag=story._live
+    ?'<span class="sh-live">● Real-time · Google News RSS</span>'
+    :'<span class="sh-delayed">⚠ Possibly 12h delayed · NewsData free tier</span>';
+
+  $('storyHeader').innerHTML=`
+    <div class="sh-cat">${(story.category||tab).toUpperCase()} · ${story.source||''}</div>
+    <div class="sh-title">${story.title||''}</div>
+    <div class="sh-meta">
+      <span class="sh-mi">📅 ${pub} · ${ts}</span>
+      ${story.link?`<span class="sh-mi"><a href="${story.link}" target="_blank">Read original →</a></span>`:''}
+      ${srcTag}
+    </div>`;
+
+  $('genBtn').disabled=false; $('genStatus').textContent='';
+  show('researchArea');
+  $('researchArea').innerHTML=`<div style="padding:34px 22px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mu);text-align:center;line-height:2.3;">
+    Story loaded · Video score: <strong style="color:var(--${story._score>=80?'red':story._score>=60?'gold':'mu2'})">${story._score||'—'}/99</strong><br>
+    Hit <span style="color:var(--red)">⚡ Generate Research Brief</span> to start.
+  </div>`;
+}
+
+// ═══ GENERATE ════════════════════════════════════════
+async function generateBrief(){
+  if(!story){ toast('Select a story first'); return; }
+  if(!K.g){ toast('Add your Gemini key in Setup'); showSetup(); return; }
+
+  $('genBtn').disabled=true; $('genStatus').textContent='';
+  hEl('scriptBtn'); hEl('briefBtn'); hEl('titleBtn');
+  hide('researchArea'); hide('copyBar'); show('loadingState');
+
+  const STEPS=[
+    {id:'s1',pct:14,lbl:'Parsing story · building research queries'},
+    {id:'s2',pct:28,lbl:'Fetching live web context (Serper)'},
+    {id:'s3',pct:45,lbl:'Pulling historical background and data'},
+    {id:'s4',pct:60,lbl:'Synthesising three perspectives'},
+    {id:'s5',pct:76,lbl:'Writing script — Hook → Pivot → Closing'},
+    {id:'s6',pct:90,lbl:'Generating title options and production notes'},
+    {id:'s7',pct:97,lbl:'Finalising and saving to history'}
+  ];
+  $('lsSteps').innerHTML=STEPS.map(s=>`<div class="ls-step" id="${s.id}"><span id="${s.id}i">⏳</span> ${s.lbl}</div>`).join('');
+
+  let si=0;
+  const fill=$('lsFill');
+  const adv=()=>{
+    if(si>0){const p=document.getElementById(STEPS[si-1].id);p.classList.remove('active');p.classList.add('done');document.getElementById(STEPS[si-1].id+'i').textContent='✓';}
+    if(si<STEPS.length){const c=document.getElementById(STEPS[si].id);c.classList.add('vis','active');document.getElementById(STEPS[si].id+'i').innerHTML='<span class="spin"></span>';fill.style.width=STEPS[si].pct+'%';si++;}
+  };
+  adv(); const tmr=setInterval(adv,820);
+
+  // SERPER — attempt direct call, silently fail if CORS-blocked
+  let webCtx='';
+  if(K.s){
+    try{
+      const r=await fetch('https://google.serper.dev/search',{
+        method:'POST',headers:{'X-API-KEY':K.s,'Content-Type':'application/json'},
+        body:JSON.stringify({q:story.title+' India analysis',gl:'in',num:5})
+      });
+      if(r.ok){ const d=await r.json(); webCtx=(d.organic||[]).slice(0,4).map(x=>`SOURCE: ${x.title}\nURL: ${x.link}\nSUMMARY: ${x.snippet}`).join('\n\n'); }
+    }catch(e){/* CORS blocked in browser — silent fallback. Deploy to Vercel for full Serper support. */}
+  }
+
+  const chCtx=K.ctx?`\n\nCHANNEL CONTEXT (personalise the brief accordingly):\n${K.ctx}`:'';
+  const prompt=`You are a world-class geopolitics research engine for a serious Indian YouTube channel. The host analyses Indian politics, foreign policy, and global affairs deeply, in the style of Nitish Rajput — finding the hidden angle mainstream media misses.${chCtx}
+
+STORY:
+TITLE: ${story.title}
+DESCRIPTION: ${story.description||'Not available'}
+SOURCE: ${story.source}
+PUBLISHED: ${story.pubDate||'Recent'}
+SOURCE TYPE: ${story._live?'Real-time Google News RSS':'NewsData.io (may be 12h delayed)'}
+${webCtx?`\nLIVE WEB SOURCES (use real URLs in references):\n${webCtx}\n`:''}
+
+Return ONLY valid JSON — raw, no markdown, no explanation, starts with { ends with }:
+
+{
+  "topic_tag": "3-4 word uppercase label",
+  "video_title": "8-12 word Nitish Rajput style title",
+  "video_angle": "One sentence: the unique hidden angle that makes this different from a news report",
+  "estimated_duration": "e.g. 14-16 minutes",
+  "hook": "OPENING NARRATION (90 sec). Start mid-action. 3-4 sentences that reframe the story as revelatory. End with a question or uncomfortable fact that makes viewers lean in. Do NOT start with 'today we discuss'.",
+  "context": "WHAT HAPPENED (2 min). Plain language for an 18-year-old. Specific dates, names, decisions. No jargon. 4-5 sentences.",
+  "history": "BACKGROUND NOBODY KNOWS (2.5 min). Specific dates, forgotten treaties, colonial history, previous conflicts. 5-6 sentences. Include one fact that will genuinely surprise a well-informed viewer.",
+  "data": "THE NUMBERS (2 min). 3-4 statistics as narrative sentences — NOT bullet points. Make numbers feel consequential. e.g. 'That river system feeds 80% of Pakistan farmland — this is not a water dispute, it is an existential lever.'",
+  "perspective_govt": "GOVT POSITION (90 sec). Cite actual MEA statements, PM/EAM quotes, or specific policies. 2-3 sentences.",
+  "perspective_critic": "CRITIC/EXPERT VIEW (90 sec). Reference ORF, Carnegie India, academic voices, or opposition leaders. Specific. 2-3 sentences.",
+  "perspective_international": "GLOBAL ANGLE (60 sec). Reference Reuters, Al Jazeera, Foreign Policy magazine, or specific foreign leaders. 2-3 sentences.",
+  "pivot": "THE HIDDEN ANGLE — the 'lekin ek cheez aur hai' moment (1 min). One paragraph. This is where the video changes direction and drops the insight nobody else is covering. This is what makes viewers share the video.",
+  "what_next": "WHAT HAPPENS NEXT (2 min). 2-3 concrete scenarios with specific named triggers to watch for. What signals escalation vs resolution. 5-6 sentences.",
+  "closing_question": "CLOSING (90 sec). One deeply uncomfortable, genuinely open-ended question to end on. Not rhetorical. Should make even informed viewers pause. 2 sentences max.",
+  "production_notes": "One paragraph: B-roll ideas, music tone (tense/neutral/dramatic), thumbnail concept, pacing, any maps or graphics that would help.",
+  "title_options": ["Most clickable title option", "More informational title option", "Provocative angle title"],
+  "references": ["${webCtx?'[REAL URL from web sources above — use actual URLs]':''}", "PRS India — Legislative background [VERIFY]", "ORF India — Strategic analysis [VERIFY]", "MEA.gov.in — Official statement [VERIFY]", "The Hindu / Indian Express — News reporting [VERIFY]", "SIPRI / World Bank / MOSPI — Data [VERIFY]"]
+}`;
+
+  let b;
+  try{
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${K.m}:generateContent?key=${K.g}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.72,maxOutputTokens:3000}})
+    });
+    const data=await r.json();
+
+    if(data.error){
+      clearInterval(tmr); hide('loadingState'); show('researchArea');
+      $('genBtn').disabled=false;
+      const code=data.error.code||0, msg=data.error.message||'';
+      if(code===429||msg.includes('quota')){
+        $('researchArea').innerHTML=`<div class="err-box">
+          <div class="err-title" style="color:var(--gold)">⚠ Daily Quota Reached</div>
+          <div class="err-body">Your free tier limit was reached for today.<br><br>
+            <strong>Fix options:</strong><br>
+            1. Switch to <strong>gemini-1.5-flash</strong> in Setup (1,500/day free)<br>
+            2. Wait for midnight PT reset<br>
+            3. Enable billing in AI Studio (free usage, much higher limits)
+          </div>
+          <button class="abtn a-out" style="margin-top:14px;" onclick="showSetup()">⚙ Open Setup</button>
+        </div>`; return;
+      }
+      if(data.promptFeedback?.blockReason){
+        $('researchArea').innerHTML=`<div class="err-box">
+          <div class="err-title" style="color:var(--orange)">Content Flagged: ${data.promptFeedback.blockReason}</div>
+          <div class="err-body">Gemini flagged this topic. Try a broader search term or rephrase the topic.<br>This sometimes happens with military/conflict stories.</div>
+        </div>`; return;
+      }
+      $('researchArea').innerHTML=errUI(msg); return;
+    }
+
+    if(!data.candidates?.[0]) throw new Error('No response from model.');
+    let raw=data.candidates[0].content?.parts?.[0]?.text||'';
+    raw=raw.replace(/```json|```/g,'').trim();
+    const s0=raw.indexOf('{'), e0=raw.lastIndexOf('}');
+    if(s0===-1||e0===-1) throw new Error('Model returned non-JSON. Try again.');
+    b=JSON.parse(raw.slice(s0,e0+1));
+  }catch(err){
+    clearInterval(tmr); hide('loadingState'); show('researchArea');
+    $('genBtn').disabled=false;
+    $('researchArea').innerHTML=errUI(err.message); return;
+  }
+
+  // SUCCESS
+  clearInterval(tmr); fill.style.width='100%';
+  STEPS.forEach(s=>{const el=document.getElementById(s.id);el.classList.add('vis','done');el.classList.remove('active');document.getElementById(s.id+'i').textContent='✓';});
+  await sleep(350);
+  brief=b; saveHist({title:b.video_title||story.title,ts:Date.now(),story,brief:b});
+  hide('loadingState'); show('researchArea'); show('copyBar','flex');
+  sEl('scriptBtn'); sEl('titleBtn'); hEl('briefBtn');
+  view='brief'; renderBrief();
+  $('genBtn').disabled=false; $('genStatus').textContent='✓ Generated';
+  setTimeout(()=>$('genStatus').textContent='',3000);
+  toast('Research brief ready ✓');
+}
+
+function errUI(msg){
+  return `<div class="err-box">
+    <div class="err-title" style="color:var(--red)">⚠ Error</div>
+    <div class="err-body">${msg}<br><br><strong>Common fixes:</strong><br>
+      • Wrong Gemini key → Setup<br>
+      • JSON parse error → click Generate again (rare model quirk)<br>
+      • CORS error → deploy this file to Vercel (see <a href="https://vercel.com" target="_blank" style="color:var(--blue)">vercel.com</a>)
+    </div>
+  </div>`;
+}
+
+// ═══ RENDER BRIEF ════════════════════════════════════
+function renderBrief(){
+  const b=brief; if(!b) return;
+  const refs=(b.references||[]).map(r=>({text:r,real:r.startsWith('http'),verify:r.includes('VERIFY')}));
+  $('researchArea').innerHTML=`<div class="brief-body">
+
+  <div class="b-sec">
+    <div class="b-row"><span class="b-tag t-hook">◈ Hook</span><span class="b-time">0:00 – 1:30</span></div>
+    <div class="hook-text">${b.hook||''}</div>
+  </div>
+
+  <div class="b-sec">
+    <div class="b-row"><span class="b-tag t-ctx">◈ What Happened</span><span class="b-time">1:30 – 3:30</span></div>
+    <div class="b-text">${b.context||''}</div>
+  </div>
+
+  <div class="b-sec">
+    <div class="b-row"><span class="b-tag t-hist">◈ History Nobody Tells You</span><span class="b-time">3:30 – 6:00</span></div>
+    <div class="b-text">${b.history||''}</div>
+  </div>
+
+  <div class="b-sec">
+    <div class="b-row"><span class="b-tag t-data">◈ The Numbers That Change Everything</span><span class="b-time">6:00 – 8:00</span></div>
+    <div class="b-text">${b.data||''}</div>
+  </div>
+
+  <div class="b-sec">
+    <div class="b-row"><span class="b-tag t-persp">◈ Three Perspectives</span><span class="b-time">8:00 – 12:00</span></div>
+    <div class="persp-grid">
+      <div class="persp-box"><div class="persp-label p-g">Govt Position</div><div class="persp-text">${b.perspective_govt||''}</div></div>
+      <div class="persp-box"><div class="persp-label p-c">Critic / Expert</div><div class="persp-text">${b.perspective_critic||''}</div></div>
+      <div class="persp-box"><div class="persp-label p-i">Global Angle</div><div class="persp-text">${b.perspective_international||''}</div></div>
+    </div>
+  </div>
+
+  <div class="b-sec">
+    <div class="b-row"><span class="b-tag t-pivot">◈ The Hidden Angle</span><span class="b-time">12:00 – 13:00</span></div>
+    <div class="pivot-box">${b.pivot||''}</div>
+  </div>
+
+  <div class="b-sec">
+    <div class="b-row"><span class="b-tag t-next">◈ What Happens Next</span><span class="b-time">13:00 – 15:00</span></div>
+    <div class="b-text">${b.what_next||''}</div>
+  </div>
+
+  <div class="b-sec">
+    <div class="b-row"><span class="b-tag t-close">◈ Closing Question</span><span class="b-time">15:00 – 16:00</span></div>
+    <div class="close-box">"${b.closing_question||''}"</div>
+  </div>
+
+  ${b.production_notes?`<div class="b-sec">
+    <div class="b-row"><span class="b-tag t-prod">◈ Production Notes</span></div>
+    <div class="prod-box">${b.production_notes}</div>
+  </div>`:''}
+
+  <div class="b-sec">
+    <div class="b-row">
+      <span class="b-tag t-refs">◈ References</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mu);">🔵 real URL · 🟡 AI-suggested — verify before citing</span>
+    </div>
+    <div class="ref-list">
+      ${refs.map(r=>`<div class="ref-item ${r.real?'ref-real':'ref-ai'}">
+        <span class="ref-pre">${r.real?'🔗':'→'}</span>${r.text}
+      </div>`).join('')}
+    </div>
+  </div>
+
+  </div>`;
+  sEl('scriptBtn'); sEl('titleBtn'); hEl('briefBtn');
+}
+
+// ═══ SCRIPT EDITOR ═══════════════════════════════════
+function renderScript(){
+  const b=brief; if(!b) return;
+  const SECS=[
+    {k:'hook',lbl:'HOOK',t:'0:00–1:30',h:'Opening narration — dramatic reframe',c:'var(--red)'},
+    {k:'context',lbl:'CONTEXT',t:'1:30–3:30',h:'What happened — plain language',c:'var(--blue)'},
+    {k:'history',lbl:'HISTORY',t:'3:30–6:00',h:'Background nobody knows',c:'var(--gold)'},
+    {k:'data',lbl:'DATA & NUMBERS',t:'6:00–8:00',h:'Statistics as narrative sentences',c:'var(--green)'},
+    {k:'perspective_govt',lbl:'GOVT POSITION',t:'8:00–9:30',h:'Cite MEA/PM/EAM statements',c:'var(--blue)'},
+    {k:'perspective_critic',lbl:'CRITIC/EXPERT',t:'9:30–11:00',h:'ORF · Carnegie India · academics',c:'var(--red)'},
+    {k:'perspective_international',lbl:'GLOBAL ANGLE',t:'11:00–12:00',h:'Reuters · Al Jazeera · Foreign Policy',c:'var(--green)'},
+    {k:'pivot',lbl:'HIDDEN ANGLE',t:'12:00–13:00',h:'"lekin ek cheez aur hai" — the real insight',c:'var(--purple)'},
+    {k:'what_next',lbl:'WHAT NEXT',t:'13:00–15:00',h:'Concrete scenarios · named triggers',c:'var(--orange)'},
+    {k:'closing_question',lbl:'CLOSING QUESTION',t:'15:00–16:00',h:'Uncomfortable · open-ended · drives comments',c:'var(--red)'},
+  ];
+  $('researchArea').innerHTML=`<div class="script-builder">
+    <div class="sc-info">
+      <span>✎ Click any block to edit. Changes save automatically.</span>
+      <span class="toast-saved" id="ast">✓ Saved</span>
+    </div>
+    ${SECS.map(s=>`<div class="ss">
+      <div class="ss-hdr">
+        <span class="ss-lbl" style="color:${s.c}">◈ ${s.lbl}</span>
+        <span class="ss-hint">${s.t} · ${s.h}</span>
+      </div>
+      <textarea class="ss-body" id="sc_${s.k}" oninput="onEdit('${s.k}',this.value)">${esc(b[s.k]||'')}</textarea>
+    </div>`).join('')}
+  </div>`;
+  hEl('scriptBtn'); hEl('titleBtn'); sEl('briefBtn');
+}
+
+function esc(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+let stmr;
+function onEdit(k,v){
+  if(brief) brief[k]=v;
+  clearTimeout(stmr);
+  stmr=setTimeout(()=>{const t=$('ast');if(t){t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1400);}},600);
+}
+
+// ═══ TITLES VIEW ═════════════════════════════════════
+function renderTitles(){
+  const b=brief; if(!b) return;
+  $('researchArea').innerHTML=`<div style="padding:22px;">
+    <div class="b-row"><span class="b-tag t-title">◈ Title Options</span></div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mu);margin-bottom:13px;">Click to copy to clipboard.</div>
+    <div class="title-opts">
+      ${(b.title_options||[b.video_title]).map((t,i)=>`
+        <div class="title-opt" onclick="copyText('${t.replace(/'/g,"\\'").replace(/"/g,'\\"')}','Title ${i+1} copied!')">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mu);margin-right:7px;">#${i+1}</span>${t}
+        </div>`).join('')}
+    </div>
+    ${b.production_notes?`<div style="margin-top:20px;">
+      <div class="b-row"><span class="b-tag t-prod">◈ Production Notes</span></div>
+      <div class="prod-box" style="margin-top:9px;">${b.production_notes}</div>
+    </div>`:''}
+  </div>`;
+  hEl('titleBtn'); sEl('scriptBtn'); sEl('briefBtn');
+}
+
+// ═══ VIEW SWITCHER ════════════════════════════════════
+function switchView(v){
+  view=v;
+  if(v==='brief') renderBrief();
+  if(v==='script') renderScript();
+  if(v==='titles') renderTitles();
+}
+
+// ═══ HISTORY ═════════════════════════════════════════
+function saveHist(item){
+  history.unshift(item); history=history.slice(0,20);
+  lss('ni_hist',JSON.stringify(history)); renderHist();
+}
+function renderHist(){
+  const cnt=$('histCnt'); if(cnt) cnt.textContent=`${history.length} saved`;
+  const list=$('histList'); if(!list) return;
+  if(!history.length){ list.innerHTML='<div style="padding:10px 13px;font-family:\'JetBrains Mono\',monospace;font-size:9px;color:var(--mu);">No briefs yet</div>'; return; }
+  list.innerHTML=history.map((it,i)=>`
+    <div class="hi" onclick="loadHist(${i})">
+      <div class="hi-title">${it.title||'Untitled'}</div>
+      <div class="hi-time">${new Date(it.ts).toLocaleString('en-IN',{dateStyle:'short',timeStyle:'short'})}</div>
+    </div>`).join('');
+}
+function loadHist(i){
+  const it=history[i]; if(!it) return;
+  story=it.story||{title:it.title,pubDate:new Date(it.ts).toISOString()};
+  brief=it.brief; view='brief';
+  hide('placeholder'); show('storyHeader'); show('actionBar','flex');
+  show('researchArea'); show('copyBar','flex');
+  sEl('scriptBtn'); sEl('titleBtn'); hEl('briefBtn');
+  $('storyHeader').innerHTML=`<div class="sh-cat">HISTORY · ${new Date(it.ts).toLocaleDateString('en-IN')}</div>
+    <div class="sh-title">${brief.video_title||story.title}</div>
+    <div class="sh-meta"><span class="sh-mi">📂 Loaded from saved history</span></div>`;
+  $('genBtn').disabled=false; renderBrief();
+}
+function toggleHist(){ const l=$('histList'); l.style.display=l.style.display==='block'?'none':'block'; }
+
+// ═══ CREDITS ══════════════════════════════════════════
+function burnCredit(){ creditsUsed++; lss('ni_cr_'+today(),creditsUsed); updateCredits(); }
+function updateCredits(){
+  const rem=200-creditsUsed;
+  const dot=$('cDot'), lbl=$('cLbl'); if(!dot||!lbl) return;
+  if(!K.n){ lbl.textContent='No NewsData'; dot.className='cdot'; return; }
+  lbl.textContent=`Credits: ${rem}/200`;
+  dot.className=rem>50?'cdot':rem>20?'cdot warn':'cdot low';
+}
+
+// ═══ SETUP ════════════════════════════════════════════
+function saveSetup(){
+  const g=$('s_g').value.trim(); if(!g){ toast('Gemini key required'); return; }
+  lss('ni_g',g); lss('ni_m',$('s_m').value);
+  const n=$('s_n').value.trim(); if(n) lss('ni_n',n);
+  const s=$('s_s').value.trim(); if(s) lss('ni_s',s);
+  const ctx=$('s_ctx').value.trim(); if(ctx) lss('ni_ctx',ctx);
+  hide('setup'); updateCredits(); loadFeed(true); toast('Setup saved. Loading live feed…');
+}
+function showSetup(){
+  $('s_g').value=K.g||''; $('s_m').value=K.m;
+  $('s_n').value=K.n||''; $('s_s').value=K.s||''; $('s_ctx').value=K.ctx||'';
+  show('setup','flex');
+}
+
+// ═══ COPY / DOWNLOAD ══════════════════════════════════
+function fullTxt(){
+  if(!brief) return '';
+  const b=brief, R='─'.repeat(62);
+  return `NARRATIVEINTEL v2 — RESEARCH BRIEF\n${R}
+VIDEO: ${b.video_title||''}
+ANGLE: ${b.video_angle||''}
+DURATION: ${b.estimated_duration||''}
+GENERATED: ${new Date().toLocaleString('en-IN')}
+${R}
+
+[HOOK — 0:00 to 1:30]\n${b.hook||''}
+
+[CONTEXT — 1:30 to 3:30]\n${b.context||''}
+
+[HISTORY — 3:30 to 6:00]\n${b.history||''}
+
+[DATA — 6:00 to 8:00]\n${b.data||''}
+
+[GOVT POSITION — 8:00 to 9:30]\n${b.perspective_govt||''}
+
+[CRITIC / EXPERT — 9:30 to 11:00]\n${b.perspective_critic||''}
+
+[GLOBAL ANGLE — 11:00 to 12:00]\n${b.perspective_international||''}
+
+[HIDDEN ANGLE — 12:00 to 13:00]\n${b.pivot||''}
+
+[WHAT NEXT — 13:00 to 15:00]\n${b.what_next||''}
+
+[CLOSING QUESTION — 15:00 to 16:00]\n"${b.closing_question||''}"
+
+${R}
+PRODUCTION NOTES:\n${b.production_notes||''}
+
+TITLES:\n${(b.title_options||[]).map((t,i)=>`${i+1}. ${t}`).join('\n')}
+
+REFERENCES (🟡 = verify before citing):\n${(b.references||[]).map(r=>'→ '+r).join('\n')}
+${R}\nNarrativeIntel v2`;
+}
+function copyAll(){ navigator.clipboard.writeText(fullTxt()).then(()=>toast('Brief copied ✓')); }
+function downloadTxt(){
+  const blob=new Blob([fullTxt()],{type:'text/plain'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`narrativeintel_${Date.now()}.txt`; a.click(); toast('Downloading…');
+}
+function copyText(t,msg='Copied!'){ navigator.clipboard.writeText(t).then(()=>toast(msg)); }
+
+// ═══ UTILS ════════════════════════════════════════════
+function $(id){ return document.getElementById(id); }
+function show(id,d='block'){ const e=$(id); if(e) e.style.display=d; }
+function hide(id){ const e=$(id); if(e) e.style.display='none'; }
+function sEl(id){ const e=$(id); if(e) e.style.display='inline-flex'; }
+function hEl(id){ const e=$(id); if(e) e.style.display='none'; }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+let toastT;
+function toast(msg){ const e=$('toast'); e.textContent=msg; e.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>e.classList.remove('show'),2800); }
+
+// ═══ INIT ═════════════════════════════════════════════
+window.addEventListener('load',()=>{
+  renderHist(); updateCredits();
+  if(K.g){ hide('setup'); loadFeed(true); }
+});
+</script>
+</body>
+</html>

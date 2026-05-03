@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NarrativeIntel — Deploy Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@300;400;500&family=Fraunces:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07080b;--s1:#0d0f15;--s2:#131620;--bd:#22273a;--tx:#dde1f0;--mu:#525b78;--mu2:#7280a0;--red:#e8392a;--gold:#f0a820;--blue:#3b7ef6;--green:#20c060;--purple:#9050f0;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--tx);font-family:'Fraunces',Georgia,serif;min-height:100vh;padding:0;}
+.header{background:var(--s1);border-bottom:1px solid var(--bd);padding:20px 40px;display:flex;align-items:center;gap:12px;}
+.brand{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;}
+.brand em{color:var(--red);font-style:normal;}
+.header-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--mu);letter-spacing:2px;}
+.main{max-width:860px;margin:0 auto;padding:40px 24px;}
+h2{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:1.5px;margin-bottom:8px;}
+.intro{font-size:14px;color:var(--mu2);line-height:1.8;margin-bottom:36px;}
+
+/* COST TABLE */
+.cost-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:40px;}
+.cost-card{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:16px;text-align:center;}
+.cost-num{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--green);}
+.cost-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--mu);letter-spacing:1px;margin-top:4px;}
+.cost-sub{font-size:11px;color:var(--mu2);margin-top:4px;}
+
+/* STEPS */
+.step{display:grid;grid-template-columns:52px 1fr;gap:20px;margin-bottom:28px;background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:22px;}
+.step:hover{border-color:var(--bd2,#2e3448);}
+.step-num{font-family:'Bebas Neue',sans-serif;font-size:44px;color:var(--red);opacity:.7;line-height:1;}
+.step-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;margin-bottom:6px;}
+.step-desc{font-size:13px;color:var(--mu2);line-height:1.8;margin-bottom:12px;}
+.step-desc strong{color:var(--tx);}
+.step-desc a{color:var(--blue);}
+.tags{display:flex;gap:6px;flex-wrap:wrap;}
+.tag{font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 10px;border-radius:3px;letter-spacing:.5px;}
+.t-free{background:rgba(32,192,96,.12);color:var(--green);border:1px solid rgba(32,192,96,.25);}
+.t-time{background:rgba(240,168,32,.1);color:var(--gold);border:1px solid rgba(240,168,32,.2);}
+.t-key{background:rgba(59,126,246,.1);color:var(--blue);border:1px solid rgba(59,126,246,.2);}
+
+/* CODE BLOCKS */
+pre{background:#000;border:1px solid var(--bd);border-radius:5px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#a8e6a8;overflow-x:auto;margin:10px 0;line-height:1.7;}
+code{font-family:'JetBrains Mono',monospace;font-size:11px;background:rgba(255,255,255,.06);padding:2px 6px;border-radius:3px;color:var(--gold);}
+
+/* ENV TABLE */
+.env-table{width:100%;border-collapse:collapse;margin:12px 0;font-family:'JetBrains Mono',monospace;font-size:10px;}
+.env-table th{text-align:left;padding:8px 10px;background:var(--s2);color:var(--mu);border-bottom:1px solid var(--bd);letter-spacing:1px;}
+.env-table td{padding:8px 10px;border-bottom:1px solid var(--bd);vertical-align:top;}
+.env-table td:first-child{color:var(--gold);}
+.env-table td:nth-child(2){color:var(--mu2);}
+.env-table td:last-child{color:var(--green);}
+.env-table tr:last-child td{border-bottom:none;}
+
+/* HOW IT WORKS */
+.flow{display:flex;align-items:center;gap:0;margin:20px 0;overflow-x:auto;}
+.flow-box{background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:12px 16px;text-align:center;min-width:120px;flex-shrink:0;}
+.flow-icon{font-size:20px;margin-bottom:4px;}
+.flow-label{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--mu);letter-spacing:1px;text-transform:uppercase;}
+.flow-sub{font-size:10px;color:var(--mu2);margin-top:2px;}
+.flow-arrow{font-size:18px;color:var(--red);padding:0 8px;flex-shrink:0;}
+
+.alert-box{background:rgba(232,57,42,.06);border:1px solid rgba(232,57,42,.2);border-radius:6px;padding:14px 18px;font-size:13px;color:#c0a0a0;line-height:1.8;margin:16px 0;}
+.alert-box strong{color:var(--tx);}
+.info-box{background:rgba(59,126,246,.06);border:1px solid rgba(59,126,246,.2);border-radius:6px;padding:14px 18px;font-size:13px;color:var(--mu2);line-height:1.8;margin:16px 0;}
+.info-box strong{color:var(--tx);}
+.success-box{background:rgba(32,192,96,.06);border:1px solid rgba(32,192,96,.2);border-radius:6px;padding:14px 18px;font-size:13px;color:#a0c8a0;line-height:1.8;margin:16px 0;}
+
+.section-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--mu);text-transform:uppercase;border-bottom:1px solid var(--bd);padding-bottom:8px;margin:32px 0 20px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="brand">NARRATIVE<em>INTEL</em> <span style="font-size:14px;color:var(--mu);letter-spacing:1px;">v2</span></div>
+    <div class="header-sub">DEPLOYMENT GUIDE — AUTOMATIC NEWS WATCHER</div>
+  </div>
+</div>
+
+<div class="main">
+
+<h2>Deploy in 20 Minutes</h2>
+<div class="intro">
+  This guide deploys the fully automatic system: GitHub Actions pings your Vercel function every 30 minutes → it fetches live news → scores stories → calls Gemini → sends you a complete research brief by email. Zero ongoing effort after setup.
+</div>
+
+<!-- COST OVERVIEW -->
+<div class="section-lbl">What This Costs</div>
+<div class="cost-grid">
+  <div class="cost-card"><div class="cost-num">₹0</div><div class="cost-label">Vercel Hosting</div><div class="cost-sub">Free forever</div></div>
+  <div class="cost-card"><div class="cost-num">₹0</div><div class="cost-label">GitHub Actions</div><div class="cost-sub">Free for public repos</div></div>
+  <div class="cost-card"><div class="cost-num">₹0</div><div class="cost-label">Resend Email</div><div class="cost-sub">3,000 emails/month free</div></div>
+  <div class="cost-card"><div class="cost-num">₹0</div><div class="cost-label">Gemini API</div><div class="cost-sub">1,000 req/day free</div></div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="section-lbl">How the Automatic System Works</div>
+<div class="flow">
+  <div class="flow-box"><div class="flow-icon">⏰</div><div class="flow-label">GitHub Actions</div><div class="flow-sub">Every 30 min</div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box"><div class="flow-icon">🌐</div><div class="flow-label">Vercel Function</div><div class="flow-sub">/api/watcher</div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box"><div class="flow-icon">📰</div><div class="flow-label">Google News RSS</div><div class="flow-sub">Real-time feed</div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box"><div class="flow-icon">🎯</div><div class="flow-label">Score & Filter</div><div class="flow-sub">Score ≥ 68 only</div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box"><div class="flow-icon">🤖</div><div class="flow-label">Gemini API</div><div class="flow-sub">Generate brief</div></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box"><div class="flow-icon">📧</div><div class="flow-label">Resend Email</div><div class="flow-sub">To your inbox</div></div>
+</div>
+<div class="info-box">
+  <strong>Expected speed:</strong> A story breaks → within 15–30 minutes you receive a full research brief in your email with hook, context, history, data, 3 perspectives, the hidden angle, what-next scenarios, and closing question — ready to record.
+</div>
+
+<!-- STEP 1 -->
+<div class="section-lbl">Step-by-Step Setup</div>
+
+<div class="step">
+  <div class="step-num">1</div>
+  <div>
+    <div class="step-title">Get Your API Keys</div>
+    <div class="step-desc">
+      You need 3 keys. Get them all before starting deployment.<br><br>
+      <strong>Gemini (required):</strong> Go to <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a> → Create API Key → Copy it.<br><br>
+      <strong>Resend (required):</strong> Go to <a href="https://resend.com/signup" target="_blank">resend.com/signup</a> → Create account → API Keys → Create API Key → Copy it. Also go to Domains → Add your email domain OR use their test domain for now.<br><br>
+      <strong>Serper (optional but recommended):</strong> Go to <a href="https://serper.dev/signup" target="_blank">serper.dev/signup</a> → Get API key → 2,500 free queries.
+    </div>
+    <div class="tags"><span class="tag t-time">~5 minutes</span><span class="tag t-free">All Free</span></div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">2</div>
+  <div>
+    <div class="step-title">Upload Project to GitHub</div>
+    <div class="step-desc">
+      Go to <a href="https://github.com/new" target="_blank">github.com/new</a> → Create a new repository named <code>narrativeintel</code> → Set it to <strong>Public</strong> (required for free GitHub Actions).<br><br>
+      Then upload the project files. The easiest way — no terminal needed:<br>
+      GitHub repo → click <strong>uploading an existing file</strong> → drag and drop the entire <code>narrativeintel</code> folder contents → Commit changes.
+    </div>
+    <div class="tags"><span class="tag t-time">~5 minutes</span><span class="tag t-free">Free</span></div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">3</div>
+  <div>
+    <div class="step-title">Deploy to Vercel</div>
+    <div class="step-desc">
+      Go to <a href="https://vercel.com/new" target="_blank">vercel.com/new</a> → Sign in with GitHub → Import your <code>narrativeintel</code> repository → Click Deploy.<br><br>
+      Vercel will automatically detect the project structure and deploy it. Your app gets a URL like <code>narrativeintel.vercel.app</code>.<br><br>
+      After deploy, go to your project → <strong>Settings → Environment Variables</strong> → Add all variables from the table below.
+    </div>
+    <div class="tags"><span class="tag t-time">~5 minutes</span><span class="tag t-free">Free Hobby Plan</span></div>
+
+    <table class="env-table" style="margin-top:14px;">
+      <tr><th>Variable Name</th><th>Value</th><th>Required?</th></tr>
+      <tr><td>GEMINI_API_KEY</td><td>Your Gemini API key (AIza...)</td><td>Required</td></tr>
+      <tr><td>RESEND_API_KEY</td><td>Your Resend API key (re_...)</td><td>Required</td></tr>
+      <tr><td>ALERT_EMAIL</td><td>Your email address to receive alerts</td><td>Required</td></tr>
+      <tr><td>WATCHER_TOKEN</td><td>Any random string you create (e.g. make-it-long-and-random-32chars)</td><td>Required</td></tr>
+      <tr><td>GEMINI_MODEL</td><td>gemini-2.5-flash-lite-preview-06-17</td><td>Optional</td></tr>
+      <tr><td>SERPER_API_KEY</td><td>Your Serper API key</td><td>Optional</td></tr>
+      <tr><td>MIN_SCORE</td><td>68 (lower = more alerts, higher = fewer)</td><td>Optional</td></tr>
+      <tr><td>CHANNEL_CONTEXT</td><td>Your channel description (1-2 sentences)</td><td>Optional</td></tr>
+    </table>
+
+    <div class="alert-box" style="margin-top:12px;">
+      <strong>Important:</strong> After adding env variables, go to Deployments → click the three dots on your latest deployment → <strong>Redeploy</strong> so the variables take effect.
+    </div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">4</div>
+  <div>
+    <div class="step-title">Add Secrets to GitHub Actions</div>
+    <div class="step-desc">
+      Go to your GitHub repo → <strong>Settings → Secrets and variables → Actions → New repository secret</strong>.<br><br>
+      Add these two secrets:
+    </div>
+    <table class="env-table">
+      <tr><th>Secret Name</th><th>Value</th></tr>
+      <tr><td>VERCEL_WATCHER_URL</td><td>https://your-project.vercel.app/api/watcher (your Vercel URL + /api/watcher)</td></tr>
+      <tr><td>WATCHER_TOKEN</td><td>Same random string you set in Vercel env variables</td></tr>
+    </table>
+    <div class="tags" style="margin-top:12px;"><span class="tag t-time">~3 minutes</span><span class="tag t-free">Free</span></div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">5</div>
+  <div>
+    <div class="step-title">Test It Manually First</div>
+    <div class="step-desc">
+      Before waiting 30 minutes, test the watcher manually.<br><br>
+      Go to your GitHub repo → <strong>Actions</strong> tab → <strong>NarrativeIntel — News Watcher</strong> → <strong>Run workflow</strong> → Run workflow.<br><br>
+      Watch the logs. You should see stories being fetched, scored, and if any hit the threshold, an email sent. Check your inbox — first alert should arrive within 2 minutes.
+    </div>
+    <pre>Expected log output:
+[India Breaking] fetched 15 stories
+[India-Pakistan] HIGH SCORE: 84 — India Suspends Water Treaty...
+EMAIL SENT: India Suspends Water Treaty After Attack
+alerts_sent: 1</pre>
+    <div class="tags"><span class="tag t-time">~2 minutes</span></div>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">6</div>
+  <div>
+    <div class="step-title">Set Up Resend Domain (for real email delivery)</div>
+    <div class="step-desc">
+      By default, Resend can only send to your own verified email on the free tier. To send properly:<br><br>
+      Option A (easiest): <strong>Use onboarding@resend.dev as the from address</strong> — works immediately, no domain needed.<br><br>
+      In <code>api/watcher.js</code>, change the from line to:
+    </div>
+    <pre>from: 'NarrativeIntel &lt;onboarding@resend.dev&gt;',</pre>
+    <div class="step-desc">
+      Option B: Add your own domain in Resend → Domains → Add Domain → follow DNS setup instructions. Takes 5 minutes, gives you <code>alerts@yourdomain.com</code>.
+    </div>
+  </div>
+</div>
+
+<!-- WHAT YOU GET -->
+<div class="section-lbl">What Arrives in Your Email</div>
+<div class="success-box">
+  Every alert email contains a <strong>complete, formatted research brief</strong>:<br><br>
+  🔴 Story urgency level + video score<br>
+  📺 Video title + unique angle<br>
+  🎤 Opening hook (ready to record)<br>
+  📋 Context, History, Data sections<br>
+  🏛️ 3 Perspectives (Govt / Critic / Global)<br>
+  🔑 The Hidden Angle — "lekin ek cheez aur hai"<br>
+  🔮 What happens next (2-3 concrete scenarios)<br>
+  ❓ Closing question<br>
+  📚 Suggested sources to verify
+</div>
+
+<!-- TUNING -->
+<div class="section-lbl">Tuning the System</div>
+<div class="info-box">
+  <strong>Getting too many emails?</strong> Raise <code>MIN_SCORE</code> to 75 or 80 in Vercel env vars.<br>
+  <strong>Missing stories?</strong> Lower <code>MIN_SCORE</code> to 60. Add more topics to <code>WATCH_TOPICS</code> in <code>api/watcher.js</code>.<br>
+  <strong>Wrong topics?</strong> Edit the <code>WATCH_TOPICS</code> array in <code>api/watcher.js</code> — each has a query and threshold.<br>
+  <strong>Want faster alerts?</strong> Change the cron schedule in <code>.github/workflows/watcher.yml</code> from <code>*/30 * * * *</code> to <code>*/15 * * * *</code> for every 15 minutes.
+</div>
+
+<div class="section-lbl">Honest Limitations</div>
+<div class="alert-box">
+  <strong>Speed:</strong> You get alerts within 15–30 minutes of a story appearing in Google News RSS — not the second it breaks on Twitter. For the absolute latest breaking news (like live attacks or live verdicts), you'll still see it on Twitter/WhatsApp first. This system is for considered stories that have appeared in news sources — which is actually the right level for video content, since you need verified facts, not live rumours.<br><br>
+  <strong>Deduplication:</strong> The current version uses in-memory deduplication which resets when the Vercel function cold-starts. This means you might occasionally get the same story twice. A future version can add Vercel KV storage for persistent dedup — free on Vercel too.
+</div>
+
+</div><!-- /main -->
+</body>
+</html>

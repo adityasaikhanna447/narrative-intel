@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "functions": {
+    "api/watcher.js": {
+      "maxDuration": 60
+    }
+  }
+}
