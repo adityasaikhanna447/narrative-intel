@@ -86,7 +86,7 @@ module.exports = async function handler(req, res) {
   }
 
   log.push(`ALERTS QUEUED: ${alerts.length}`);
-const sent = [];
+  const sent = [];
   for (const alert of alerts) {
     try {
       const result = await sendEmail(alert, env);
