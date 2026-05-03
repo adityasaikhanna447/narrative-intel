@@ -399,7 +399,7 @@ async function sendEmail({ story, brief, score, topic }, env) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'NarrativeIntel <alerts@narrativeintel.com>',
+      from: 'NarrativeIntel <onboarding@resend.dev>',
       to:   [env.toEmail],
       subject,
       html,
