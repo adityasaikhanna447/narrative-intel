@@ -1,9 +1,11 @@
 {
   "name": "narrativeintel",
   "version": "2.0.0",
-  "description": "Automated geopolitics research engine — live news watcher + Gemini brief generator",
   "private": true,
+  "scripts": {
+    "build": "echo 'no build needed'"
+  },
   "engines": {
-    "node": ">=18"
+    "node": "20.x"
   }
 }
