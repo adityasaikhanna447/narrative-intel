@@ -2,18 +2,10 @@
 // NarrativeIntel — Automatic Watcher
 // Deployed as: /api/watcher  on Vercel
 // Triggered by: GitHub Actions every 30 minutes
-//
-// Flow:
-//   1. Fetch Google News RSS (real-time, free)
-//   2. Score every headline for video potential
-//   3. Skip anything already seen (dedup via seen list)
-//   4. For high-score stories → call Gemini → generate brief
-//   5. Send formatted email via Resend
 // ─────────────────────────────────────────────────────
 
-const SEEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const SEEN_TTL_MS = 24 * 60 * 60 * 1000;
 
-// ── Topic queries to monitor ─────────────────────────
 const WATCH_TOPICS = [
   { name: 'India Breaking', q: 'India breaking news urgent', threshold: 72 },
   { name: 'India-Pakistan', q: 'India Pakistan military tension', threshold: 65 },
@@ -23,36 +15,44 @@ const WATCH_TOPICS = [
   { name: 'Geopolitics',   q: 'BRICS UN India foreign policy', threshold: 68 },
 ];
 
-// ── Scoring keywords ─────────────────────────────────
 const HIGH = /attack|war|strike|nuclear|crisis|emergency|verdict|resign|arrested|killed|bomb|terror|ceasefire|escalat|coup|airstrike|firing|clash|tension|dossier|explosion/i;
 const MID  = /india|modi|court|election|economy|gdp|rupee|china|brics|un |parliament|budget|reform|protest|bilateral|treaty|sanction/i;
 
-// ── In-memory seen store (resets each cold start) ────
-// For persistence across cold starts without a DB,
-// we embed seen IDs in the email subject and read them back.
-// Simple and free.
 let _seenThisRun = new Set();
 
 module.exports = async function handler(req, res) {
-  // ── Method check ──────────────────────────────────────
+
+  // ── DEBUG — remove after confirming env vars work ──
+  if (req.query.debug === '1') {
+    return res.status(200).json({
+      has_gemini:  !!process.env.GEMINI_API_KEY,
+      has_resend:  !!process.env.RESEND_API_KEY,
+      has_email:   !!process.env.ALERT_EMAIL,
+      has_token:   !!process.env.WATCHER_TOKEN,
+      has_model:   !!process.env.GEMINI_MODEL,
+      node_env:    process.env.NODE_ENV,
+    });
+  }
+
+  // ── Method check ──────────────────────────────────
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // ── Auth check — only GitHub Actions can call this ──
+  // ── Auth check ────────────────────────────────────
   const token = req.headers['x-watcher-token'];
   if (token !== process.env.WATCHER_TOKEN) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
   const env = {
-    geminiKey:  process.env.GEMINI_API_KEY,
-    geminiModel:process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite-preview-06-17',
-    resendKey:  process.env.RESEND_API_KEY,
-    toEmail:    process.env.ALERT_EMAIL,
-    serperKey:  process.env.SERPER_API_KEY || '',
-    channelCtx: process.env.CHANNEL_CONTEXT || '',
-    minScore:   parseInt(process.env.MIN_SCORE || '68'),
+    geminiKey:   process.env.GEMINI_API_KEY,
+    geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite-preview-06-17',
+    resendKey:   process.env.RESEND_API_KEY,
+    toEmail:     process.env.ALERT_EMAIL,
+    serperKey:   process.env.SERPER_API_KEY || '',
+    channelCtx:  process.env.CHANNEL_CONTEXT || '',
+    minScore:    parseInt(process.env.MIN_SCORE || '68'),
   };
 
   if (!env.geminiKey || !env.resendKey || !env.toEmail) {
@@ -62,7 +62,6 @@ module.exports = async function handler(req, res) {
   const log = [];
   const alerts = [];
 
-  // ── 1. Fetch and score all topics ────────────────────
   for (const topic of WATCH_TOPICS) {
     try {
       const stories = await fetchRSS(topic.q);
@@ -78,7 +77,6 @@ module.exports = async function handler(req, res) {
         _seenThisRun.add(id);
         log.push(`[${topic.name}] HIGH SCORE: ${score} — ${story.title.slice(0, 70)}`);
 
-        // ── 2. Generate research brief ─────────────────
         const webCtx = env.serperKey ? await fetchSerper(story.title, env.serperKey) : '';
         const brief  = await generateBrief(story, webCtx, env);
 
@@ -91,7 +89,6 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // ── 3. Send emails ────────────────────────────────────
   const sent = [];
   for (const alert of alerts) {
     try {
@@ -112,9 +109,6 @@ module.exports = async function handler(req, res) {
   });
 };
 
-// ─────────────────────────────────────────────────────
-// RSS FETCH via rss2json (free, no key needed)
-// ─────────────────────────────────────────────────────
 async function fetchRSS(query) {
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-IN&gl=IN&ceid=IN:en`;
   const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=15`;
@@ -135,9 +129,6 @@ function srcFromTitle(t = '') {
   return m ? m[1].trim() : 'News';
 }
 
-// ─────────────────────────────────────────────────────
-// STORY SCORING
-// ─────────────────────────────────────────────────────
 function scoreStory(story) {
   const txt = (story.title + ' ' + story.description).toLowerCase();
   let score = 38;
@@ -146,7 +137,7 @@ function scoreStory(story) {
   const ageMin = Math.floor((Date.now() - new Date(story.pubDate).getTime()) / 60000);
   if (ageMin < 60)  score += 10;
   else if (ageMin < 180) score += 5;
-  else if (ageMin > 720) score -= 10; // 12h old — deprioritise
+  else if (ageMin > 720) score -= 10;
   return Math.min(score, 99);
 }
 
@@ -154,9 +145,6 @@ function storyId(story) {
   return (story.title || '').toLowerCase().replace(/\s+/g, '').slice(0, 60);
 }
 
-// ─────────────────────────────────────────────────────
-// SERPER WEB SEARCH (optional — adds live context)
-// ─────────────────────────────────────────────────────
 async function fetchSerper(title, apiKey) {
   try {
     const r = await fetch('https://google.serper.dev/search', {
@@ -175,13 +163,8 @@ async function fetchSerper(title, apiKey) {
   }
 }
 
-// ─────────────────────────────────────────────────────
-// GEMINI BRIEF GENERATION
-// ─────────────────────────────────────────────────────
 async function generateBrief(story, webCtx, env) {
-  const chCtx = env.channelCtx
-    ? `\n\nCHANNEL CONTEXT:\n${env.channelCtx}`
-    : '';
+  const chCtx = env.channelCtx ? `\n\nCHANNEL CONTEXT:\n${env.channelCtx}` : '';
 
   const prompt = `You are a research engine for a serious Indian YouTube channel covering politics and geopolitics in the style of Nitish Rajput.${chCtx}
 
@@ -192,13 +175,12 @@ SOURCE: ${story.source}
 PUBLISHED: ${story.pubDate}
 ${webCtx ? `\nLIVE WEB CONTEXT:\n${webCtx}\n` : ''}
 
-This story just broke. Generate a concise research brief the host can use immediately.
 Return ONLY valid JSON — no markdown, no explanation:
 
 {
   "video_title": "Punchy 8-12 word title",
   "why_this_matters": "2 sentences: why this specific story is significant right now",
-  "hook": "Opening 3-4 sentences for the video. Start mid-action, not 'today we discuss'. Reframe the story as something revelatory.",
+  "hook": "Opening 3-4 sentences. Start mid-action, not 'today we discuss'. Reframe as revelatory.",
   "context": "What happened in plain language — 3-4 sentences, no jargon",
   "history": "Key historical background most people don't know — 3-4 sentences with specific dates",
   "data": "2-3 key statistics as narrative sentences — make numbers feel consequential",
@@ -208,7 +190,7 @@ Return ONLY valid JSON — no markdown, no explanation:
   "what_next": "2-3 concrete scenarios to watch — specific triggers",
   "closing_question": "One uncomfortable, thought-provoking question to end the video",
   "angle": "One sentence: the unique angle that makes this video different from news coverage",
-  "urgency": "HIGH or MEDIUM — how time-sensitive is making this video",
+  "urgency": "HIGH or MEDIUM",
   "suggested_sources": ["PRS India", "ORF India", "MEA.gov.in", "The Hindu", "SIPRI"]
 }`;
 
@@ -238,9 +220,6 @@ Return ONLY valid JSON — no markdown, no explanation:
   }
 }
 
-// ─────────────────────────────────────────────────────
-// EMAIL via RESEND
-// ─────────────────────────────────────────────────────
 async function sendEmail({ story, brief, score, topic }, env) {
   const urgencyColor = brief.urgency === 'HIGH' ? '#e8392a' : '#f0a820';
   const urgencyBg    = brief.urgency === 'HIGH' ? '#fff0ee' : '#fffbee';
@@ -252,63 +231,36 @@ async function sendEmail({ story, brief, score, topic }, env) {
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f7;padding:24px 0;">
 <tr><td align="center">
 <table width="620" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-
-  <!-- HEADER -->
   <tr><td style="background:#07080b;padding:20px 28px;">
-    <table width="100%" cellpadding="0" cellspacing="0">
-      <tr>
-        <td>
-          <span style="font-family:Arial,sans-serif;font-size:13px;font-weight:900;letter-spacing:3px;color:#ffffff;">NARRATIVE</span><span style="font-family:Arial,sans-serif;font-size:13px;font-weight:900;letter-spacing:3px;color:#e8392a;">INTEL</span>
-          <span style="font-family:monospace;font-size:9px;color:#555;margin-left:8px;letter-spacing:1px;">LIVE ALERT</span>
-        </td>
-        <td align="right">
-          <span style="font-family:monospace;font-size:10px;color:#888;">${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
-        </td>
-      </tr>
-    </table>
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td><span style="font-family:Arial,sans-serif;font-size:13px;font-weight:900;letter-spacing:3px;color:#ffffff;">NARRATIVE</span><span style="font-family:Arial,sans-serif;font-size:13px;font-weight:900;letter-spacing:3px;color:#e8392a;">INTEL</span></td>
+      <td align="right"><span style="font-family:monospace;font-size:10px;color:#888;">${new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span></td>
+    </tr></table>
   </td></tr>
-
-  <!-- URGENCY BANNER -->
   <tr><td style="background:${urgencyBg};border-left:4px solid ${urgencyColor};padding:10px 28px;">
-    <table width="100%" cellpadding="0" cellspacing="0">
-      <tr>
-        <td><span style="font-family:monospace;font-size:9px;font-weight:700;letter-spacing:2px;color:${urgencyColor};">${brief.urgency === 'HIGH' ? '🔴 HIGH URGENCY' : '🟡 MEDIUM URGENCY'} · ${topic.toUpperCase()}</span></td>
-        <td align="right"><span style="font-family:monospace;font-size:9px;color:#888;">VIDEO SCORE: <strong style="color:${score >= 80 ? '#e8392a' : '#f0a820'}">${score}/99</strong></span></td>
-      </tr>
-    </table>
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td><span style="font-family:monospace;font-size:9px;font-weight:700;letter-spacing:2px;color:${urgencyColor};">${brief.urgency === 'HIGH' ? '🔴 HIGH URGENCY' : '🟡 MEDIUM URGENCY'} · ${topic.toUpperCase()}</span></td>
+      <td align="right"><span style="font-family:monospace;font-size:9px;color:#888;">VIDEO SCORE: <strong style="color:${score >= 80 ? '#e8392a' : '#f0a820'}">${score}/99</strong></span></td>
+    </tr></table>
   </td></tr>
-
-  <!-- STORY SOURCE -->
-  <tr><td style="padding:6px 28px 0;">
-    <span style="font-family:monospace;font-size:9px;color:#888;letter-spacing:1px;">${story.source.toUpperCase()} · <a href="${story.link || '#'}" style="color:#3b7ef6;">READ ORIGINAL →</a></span>
-  </td></tr>
-
-  <!-- VIDEO TITLE -->
+  <tr><td style="padding:6px 28px 0;"><span style="font-family:monospace;font-size:9px;color:#888;">${story.source.toUpperCase()} · <a href="${story.link || '#'}" style="color:#3b7ef6;">READ ORIGINAL →</a></span></td></tr>
   <tr><td style="padding:12px 28px 16px;">
-    <div style="font-family:Arial,sans-serif;font-size:22px;font-weight:900;line-height:1.2;color:#07080b;letter-spacing:-0.5px;">${brief.video_title || story.title}</div>
-    <div style="margin-top:8px;font-size:13px;color:#666;font-style:italic;line-height:1.5;">${brief.angle || brief.why_this_matters || ''}</div>
+    <div style="font-family:Arial,sans-serif;font-size:22px;font-weight:900;line-height:1.2;color:#07080b;">${brief.video_title || story.title}</div>
+    <div style="margin-top:8px;font-size:13px;color:#666;font-style:italic;">${brief.angle || brief.why_this_matters || ''}</div>
   </td></tr>
-
-  <!-- WHY THIS MATTERS -->
   <tr><td style="padding:0 28px 16px;">
     <div style="background:#f8f8fc;border-radius:6px;padding:14px 16px;">
       <div style="font-family:monospace;font-size:9px;letter-spacing:2px;color:#e8392a;margin-bottom:8px;">WHY THIS MATTERS NOW</div>
       <div style="font-size:13px;color:#333;line-height:1.75;">${brief.why_this_matters || ''}</div>
     </div>
   </td></tr>
-
-  <!-- HOOK -->
   <tr><td style="padding:0 28px 16px;">
     <div style="border-left:3px solid #e8392a;padding-left:16px;">
       <div style="font-family:monospace;font-size:9px;letter-spacing:2px;color:#888;margin-bottom:8px;">OPENING HOOK · 0:00 – 1:30</div>
       <div style="font-size:15px;font-style:italic;color:#111;line-height:1.75;">${brief.hook || ''}</div>
     </div>
   </td></tr>
-
-  <!-- DIVIDER -->
   <tr><td style="padding:0 28px;"><div style="height:1px;background:#eeeeee;"></div></td></tr>
-
-  <!-- CONTEXT + HISTORY -->
   <tr><td style="padding:16px 28px 0;">
     <div style="font-family:monospace;font-size:9px;letter-spacing:2px;color:#3b7ef6;margin-bottom:8px;">WHAT HAPPENED · 1:30 – 3:30</div>
     <div style="font-size:13px;color:#444;line-height:1.8;">${brief.context || ''}</div>
@@ -317,77 +269,37 @@ async function sendEmail({ story, brief, score, topic }, env) {
     <div style="font-family:monospace;font-size:9px;letter-spacing:2px;color:#f0a820;margin-bottom:8px;">HISTORY NOBODY TELLS YOU · 3:30 – 6:00</div>
     <div style="font-size:13px;color:#444;line-height:1.8;">${brief.history || ''}</div>
   </td></tr>
-
-  <!-- DATA -->
   <tr><td style="padding:14px 28px 0;">
     <div style="font-family:monospace;font-size:9px;letter-spacing:2px;color:#20c060;margin-bottom:8px;">THE NUMBERS · 6:00 – 8:00</div>
     <div style="font-size:13px;color:#444;line-height:1.8;">${brief.data || ''}</div>
   </td></tr>
-
-  <!-- DIVIDER -->
   <tr><td style="padding:16px 28px 0;"><div style="height:1px;background:#eeeeee;"></div></td></tr>
-
-  <!-- 3 PERSPECTIVES -->
-  <tr><td style="padding:16px 28px 0;">
-    <div style="font-family:monospace;font-size:9px;letter-spacing:2px;color:#9050f0;margin-bottom:12px;">THREE PERSPECTIVES · 8:00 – 12:00</div>
-    <table width="100%" cellpadding="0" cellspacing="8">
-      <tr>
-        <td width="32%" valign="top" style="background:#f0f4ff;border-radius:5px;padding:11px;">
-          <div style="font-family:monospace;font-size:8px;color:#3b7ef6;letter-spacing:1px;margin-bottom:6px;">GOVT POSITION</div>
-          <div style="font-size:11px;color:#333;line-height:1.6;">${brief.perspective_govt || ''}</div>
-        </td>
-        <td width="4%"></td>
-        <td width="32%" valign="top" style="background:#fff0f0;border-radius:5px;padding:11px;">
-          <div style="font-family:monospace;font-size:8px;color:#e8392a;letter-spacing:1px;margin-bottom:6px;">CRITIC / EXPERT</div>
-          <div style="font-size:11px;color:#333;line-height:1.6;">${brief.perspective_critic || ''}</div>
-        </td>
-        <td width="4%"></td>
-        <td width="28%" valign="top" style="background:#f0fff6;border-radius:5px;padding:11px;">
-          <div style="font-family:monospace;font-size:8px;color:#20c060;letter-spacing:1px;margin-bottom:6px;">GLOBAL ANGLE</div>
-          <div style="font-size:11px;color:#333;line-height:1.6;">${brief.perspective_critic || ''}</div>
-        </td>
-      </tr>
-    </table>
-  </td></tr>
-
-  <!-- HIDDEN ANGLE -->
   <tr><td style="padding:16px 28px 0;">
     <div style="background:linear-gradient(135deg,#f5f0ff,#f0f4ff);border:1px solid #d0c0f0;border-radius:6px;padding:14px 16px;">
-      <div style="font-family:monospace;font-size:9px;letter-spacing:2px;color:#9050f0;margin-bottom:8px;">🔑 THE HIDDEN ANGLE — "lekin ek cheez aur hai"</div>
+      <div style="font-family:monospace;font-size:9px;letter-spacing:2px;color:#9050f0;margin-bottom:8px;">🔑 THE HIDDEN ANGLE</div>
       <div style="font-size:13px;color:#333;line-height:1.8;font-style:italic;">${brief.pivot || ''}</div>
     </div>
   </td></tr>
-
-  <!-- WHAT NEXT -->
   <tr><td style="padding:14px 28px 0;">
     <div style="font-family:monospace;font-size:9px;letter-spacing:2px;color:#f06030;margin-bottom:8px;">WHAT HAPPENS NEXT</div>
     <div style="font-size:13px;color:#444;line-height:1.8;">${brief.what_next || ''}</div>
   </td></tr>
-
-  <!-- CLOSING QUESTION -->
   <tr><td style="padding:14px 28px 16px;">
     <div style="background:#07080b;border-radius:6px;padding:16px 20px;">
       <div style="font-family:monospace;font-size:9px;letter-spacing:2px;color:#888;margin-bottom:8px;">CLOSING QUESTION</div>
       <div style="font-size:15px;font-style:italic;color:#ffffff;line-height:1.65;">"${brief.closing_question || ''}"</div>
     </div>
   </td></tr>
-
-  <!-- SUGGESTED SOURCES -->
   <tr><td style="padding:0 28px 16px;">
-    <div style="font-family:monospace;font-size:9px;letter-spacing:2px;color:#888;margin-bottom:8px;">SUGGESTED SOURCES TO VERIFY</div>
+    <div style="font-family:monospace;font-size:9px;letter-spacing:2px;color:#888;margin-bottom:8px;">SUGGESTED SOURCES</div>
     <div style="font-size:11px;color:#3b7ef6;line-height:2;">${(brief.suggested_sources || []).map(s => `→ ${s}`).join('<br>')}</div>
   </td></tr>
-
-  <!-- FOOTER -->
   <tr><td style="background:#f8f8fc;padding:14px 28px;border-top:1px solid #eee;">
-    <table width="100%" cellpadding="0" cellspacing="0">
-      <tr>
-        <td><span style="font-family:monospace;font-size:9px;color:#aaa;">NarrativeIntel · Automated Research Engine</span></td>
-        <td align="right"><span style="font-family:monospace;font-size:9px;color:#aaa;">Score ${score}/99 · ${topic}</span></td>
-      </tr>
-    </table>
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td><span style="font-family:monospace;font-size:9px;color:#aaa;">NarrativeIntel · Automated Research Engine</span></td>
+      <td align="right"><span style="font-family:monospace;font-size:9px;color:#aaa;">Score ${score}/99 · ${topic}</span></td>
+    </tr></table>
   </td></tr>
-
 </table>
 </td></tr>
 </table>
