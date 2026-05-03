@@ -242,11 +242,46 @@ module.exports = async function handler(req, res) {
 };
 
 async function fetchRSS(query) {
-  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-IN&gl=IN&ceid=IN:en`;
-  const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&count=15`;
-  const r = await fetch(apiUrl, { signal: AbortSignal.timeout(10000) });
-  const d = await r.json();
-  if (d.status !== 'ok' || !d.items?.length) return [];
+  try {
+    // Fetch Google News RSS directly — no third party proxy needed on server
+    const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-IN&gl=IN&ceid=IN:en`;
+    const r = await fetch(rssUrl, {
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; NarrativeIntel/1.0)',
+        'Accept': 'application/rss+xml, application/xml, text/xml',
+      }
+    });
+    if (!r.ok) return [];
+    const text = await r.text();
+
+    // Parse RSS XML manually — no library needed
+    const items = [];
+    const itemMatches = text.matchAll(/<item>([\s\S]*?)<\/item>/g);
+    for (const match of itemMatches) {
+      const item = match[1];
+      const title       = (item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)      || item.match(/<title>(.*?)<\/title>/))?.[1]      || '';
+      const link        = (item.match(/<link>(.*?)<\/link>/)                        )?.[1] || '';
+      const pubDate     = (item.match(/<pubDate>(.*?)<\/pubDate>/)                  )?.[1] || '';
+      const description = (item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/) || item.match(/<description>(.*?)<\/description>/))?.[1] || '';
+      const source      = (item.match(/<source[^>]*>(.*?)<\/source>/)               )?.[1] || '';
+
+      if (title) {
+        items.push({
+          title:       title.replace(/ - [^-]+$/, '').trim(),
+          description: description.replace(/<[^>]*>/g, '').slice(0, 300),
+          pubDate,
+          link,
+          source: source || srcFromTitle(title),
+        });
+      }
+      if (items.length >= 15) break;
+    }
+    return items;
+  } catch (e) {
+    return [];
+  }
+}
   return d.items.map(it => ({
     title:       (it.title || '').replace(/ - [^-]+$/, '').trim(),
     description: (it.description || '').replace(/<[^>]*>/g, '').slice(0, 300),
