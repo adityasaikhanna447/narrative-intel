@@ -13,9 +13,8 @@ jobs:
       - name: Ping Watcher
         run: |
           RESPONSE=$(curl -s -w "\n%{http_code}" \
-            -X POST \
+            -X GET \
             -H "x-watcher-token: ${{ secrets.WATCHER_TOKEN }}" \
-            -H "Content-Type: application/json" \
             "${{ secrets.VERCEL_WATCHER_URL }}")
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | head -n-1)
