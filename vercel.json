@@ -1,8 +1,15 @@
 {
   "version": 2,
-  "functions": {
-    "api/watcher.js": {
-      "maxDuration": 60
+  "builds": [
+    {
+      "src": "api/watcher.js",
+      "use": "@vercel/node"
     }
-  }
+  ],
+  "routes": [
+    {
+      "src": "/api/watcher",
+      "dest": "/api/watcher.js"
+    }
+  ]
 }
