@@ -85,12 +85,12 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  const sent = [];
+const sent = [];
   for (const alert of alerts) {
     try {
-      await sendEmail(alert, env);
+      const result = await sendEmail(alert, env);
       sent.push(alert.story.title.slice(0, 60));
-      log.push(`EMAIL SENT: ${alert.story.title.slice(0, 60)}`);
+      log.push(`EMAIL SENT: ${alert.story.title.slice(0, 60)} — ID: ${result?.id || 'no-id'}`);
     } catch (e) {
       log.push(`EMAIL FAILED: ${e.message}`);
     }
